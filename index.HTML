@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>RxLearn — Semester Study App</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg:#080d1a; --surface:#0f1726; --surface2:#18243a; --border:#1e2f4a;
+      --accent:#00d4aa; --accent2:#818cf8; --accent3:#fbbf24; --accent4:#f472b6;
+      --danger:#f87171; --success:#34d399;
+      --text:#f0f6ff; --muted:#5e7a9a; --dim:#8baac4;
+      --r:18px; --rs:12px;
+      --fd:'Syne',sans-serif; --fb:'DM Sans',sans-serif;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--fb);font-size:16px;line-height:1.5;overflow-x:hidden;overscroll-behavior:none}
+    #app{display:flex;flex-direction:column;height:100dvh;max-width:480px;margin:0 auto;position:relative;overflow:hidden}
+
+    /* SCREENS */
+    .sc{position:absolute;inset:0;display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;opacity:0;pointer-events:none;transform:translateY(18px);transition:opacity .3s,transform .3s}
+    .sc.on{opacity:1;pointer-events:all;transform:translateY(0)}
+    .spad{padding-bottom:90px}
+
+    /* NAV */
+    .bnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:rgba(8,13,26,.97);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-top:1px solid var(--border);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom)}
+    .nb{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 6px;border:none;background:none;color:var(--muted);font-family:var(--fb);font-size:.64rem;font-weight:500;cursor:pointer;transition:color .2s;-webkit-tap-highlight-color:transparent}
+    .nb svg{width:21px;height:21px;stroke-width:1.7}
+    .nb.on{color:var(--accent)}
+    .nb.on::after{content:'';display:block;width:4px;height:4px;border-radius:50%;background:var(--accent);margin-top:-2px}
+
+    /* STATUS */
+    .sbar{display:flex;align-items:center;justify-content:space-between;padding:16px 20px 10px;flex-shrink:0}
+    .logo{font-family:var(--fd);font-size:1.2rem;font-weight:800;color:var(--accent);letter-spacing:-.5px}
+    .xpill{display:flex;align-items:center;gap:5px;background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.25);border-radius:100px;padding:4px 10px;font-size:.73rem;font-weight:600;color:var(--accent3)}
+    .sbadge{display:flex;align-items:center;gap:5px;background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.2);border-radius:100px;padding:4px 9px;font-size:.73rem;font-weight:600;color:var(--danger)}
+
+    /* TYPE */
+    .h1{font-family:var(--fd);font-size:1.65rem;font-weight:800;line-height:1.15}
+    .h2{font-family:var(--fd);font-size:1.2rem;font-weight:700}
+    .h3{font-family:var(--fd);font-size:.96rem;font-weight:700}
+    .lbl{font-size:.66rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+    .px{padding-left:20px;padding-right:20px}
+
+    /* PROGRESS */
+    .pt{background:rgba(255,255,255,.06);border-radius:100px;height:5px;overflow:hidden}
+    .pf{height:100%;border-radius:100px;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .5s cubic-bezier(.34,1.56,.64,1)}
+
+    /* PILLS */
+    .pill{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:100px;font-size:.67rem;font-weight:600}
+    .pt1{background:rgba(0,212,170,.1);color:var(--accent);border:1px solid rgba(0,212,170,.2)}
+    .pt2{background:rgba(129,140,248,.1);color:var(--accent2);border:1px solid rgba(129,140,248,.2)}
+    .pt3{background:rgba(251,191,36,.1);color:var(--accent3);border:1px solid rgba(251,191,36,.2)}
+    .pt4{background:rgba(244,114,182,.1);color:var(--accent4);border:1px solid rgba(244,114,182,.2)}
+
+    /* CARD */
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:17px}
+
+    /* BUTTONS */
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;border-radius:var(--rs);padding:13px 20px;font-family:var(--fb);font-size:.88rem;font-weight:600;cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent;width:100%}
+    .bprimary{background:var(--accent);color:#050a14}
+    .bprimary:active{transform:scale(.97)}
+    .bghost{background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--dim)}
+
+    /* TOAST */
+    #toast{position:fixed;bottom:94px;left:50%;transform:translateX(-50%) translateY(14px);background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:10px 17px;font-size:.8rem;font-weight:500;z-index:999;opacity:0;transition:all .3s;white-space:nowrap;pointer-events:none;max-width:calc(100vw - 36px)}
+    #toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+    #toast.ok{border-color:var(--success);color:var(--success)}
+    #toast.err{border-color:var(--danger);color:var(--danger)}
+    #toast.inf{border-color:var(--accent);color:var(--accent)}
+
+    /* XP BURST */
+    @keyframes xpb{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-65px) scale(1.5)}}
+    .xpb{position:fixed;top:44%;left:50%;transform:translate(-50%,-50%);font-family:var(--fd);font-size:2.6rem;font-weight:800;color:var(--accent3);pointer-events:none;animation:xpb .85s ease-out forwards;z-index:1000;text-shadow:0 0 22px rgba(251,191,36,.65)}
+
+    /* HOME */
+    .hero{background:linear-gradient(135deg,rgba(0,212,170,.07),rgba(129,140,248,.07));border-bottom:1px solid var(--border);padding:17px 20px 20px}
+    .gsub{font-size:.8rem;color:var(--muted);margin-bottom:3px}
+    .dxp-row{display:flex;align-items:center;justify-content:space-between;margin-top:13px;font-size:.74rem;color:var(--dim)}
+    .stats-strip{display:flex;gap:8px;padding:14px 20px}
+    .scard{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:11px 9px;text-align:center}
+    .snum{font-family:var(--fd);font-size:1.35rem;font-weight:800}
+    .slbl{font-size:.6rem;color:var(--muted);margin-top:1px}
+    .mgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 20px 16px}
+    .mc{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:15px 13px;display:flex;flex-direction:column;gap:9px;cursor:pointer;transition:transform .15s;-webkit-tap-highlight-color:transparent;position:relative;overflow:hidden}
+    .mc:active{transform:scale(.97)}
+    .mc::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--r) var(--r) 0 0}
+    .mt::before{background:var(--accent)}.mi::before{background:var(--accent2)}.ma::before{background:var(--accent3)}.mp::before{background:var(--accent4)}
+    .micon{width:37px;height:37px;border-radius:9px;display:flex;align-items:center;justify-content:center}
+    .micon svg{width:18px;height:18px}
+    .mit{background:rgba(0,212,170,.1)}.mii{background:rgba(129,140,248,.1)}.mia{background:rgba(251,191,36,.1)}.mip{background:rgba(244,114,182,.1)}
+    .mtitle{font-size:.8rem;font-weight:600;color:var(--text);line-height:1.3}
+    .mct{font-size:.66rem;color:var(--muted)}
+
+    /* FLASHCARD */
+    .fch{padding:11px 20px 7px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:8px}
+    .fcc{display:flex;align-items:center;gap:7px;font-size:.76rem;color:var(--muted)}
+    .fca{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:14px 20px 18px;gap:18px}
+    .c3w{width:100%;max-width:380px;aspect-ratio:3/2;perspective:1200px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+    .c3i{width:100%;height:100%;position:relative;transform-style:preserve-3d;transition:transform .55s cubic-bezier(.4,0,.2,1)}
+    .c3w.fl .c3i{transform:rotateY(180deg)}
+    .cface{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:var(--r);padding:22px 20px;display:flex;flex-direction:column;justify-content:space-between}
+    .cfront{background:linear-gradient(145deg,var(--surface2),var(--surface));border:1px solid var(--border)}
+    .cback{background:linear-gradient(145deg,rgba(0,212,170,.07),rgba(129,140,248,.07));border:1px solid rgba(0,212,170,.18);transform:rotateY(180deg)}
+    .clbl{font-size:.62rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+    .ctxt{font-size:.97rem;font-weight:500;line-height:1.5;color:var(--text);text-align:center;flex:1;display:flex;align-items:center;justify-content:center}
+    .chint{font-size:.65rem;color:var(--muted);display:flex;align-items:center;gap:4px}
+    .swpa{display:flex;gap:9px;width:100%;max-width:380px}
+    .swpb{flex:1;padding:12px;border-radius:var(--rs);border:none;font-family:var(--fb);font-size:.8rem;font-weight:600;cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent;display:flex;align-items:center;justify-content:center;gap:5px}
+    .swpb:active{transform:scale(.95)}
+    .sw-no{background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.2);color:var(--danger)}
+    .sw-ok{background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.2);color:var(--success)}
+
+    /* QUIZ */
+    .qhdr{padding:13px 20px 7px;flex-shrink:0;display:flex;flex-direction:column;gap:9px}
+    .qmeta{display:flex;align-items:center;justify-content:space-between}
+    .qbody{flex:1;padding:11px 20px 0;display:flex;flex-direction:column;gap:11px;overflow-y:auto}
+    .qtxt{font-size:.92rem;font-weight:500;line-height:1.55;color:var(--text)}
+    .opt{width:100%;text-align:left;padding:13px;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--rs);color:var(--text);font-family:var(--fb);font-size:.84rem;font-weight:400;cursor:pointer;transition:all .18s;-webkit-tap-highlight-color:transparent;display:flex;align-items:flex-start;gap:9px;line-height:1.4}
+    .opt:active:not(:disabled){transform:scale(.99)}
+    .olt{width:23px;height:23px;border-radius:6px;background:rgba(255,255,255,.05);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:700;flex-shrink:0;transition:all .18s}
+    .opt.ok{border-color:var(--success);background:rgba(52,211,153,.07)}
+    .opt.ok .olt{background:var(--success);border-color:var(--success);color:#050a14}
+    .opt.no{border-color:var(--danger);background:rgba(248,113,113,.07)}
+    .opt.no .olt{background:var(--danger);border-color:var(--danger);color:#fff}
+    .expl{background:rgba(129,140,248,.07);border:1px solid rgba(129,140,248,.17);border-radius:var(--rs);padding:12px;font-size:.79rem;line-height:1.55;color:var(--dim);display:none}
+    .expl.on{display:block}
+    .expl strong{display:block;font-size:.63rem;letter-spacing:.08em;text-transform:uppercase;color:var(--accent2);margin-bottom:4px}
+    .qftr{padding:9px 20px 16px;padding-bottom:calc(16px + env(safe-area-inset-bottom));flex-shrink:0;border-top:1px solid var(--border)}
+
+    /* PATH */
+    .plist{padding:14px 20px;display:flex;flex-direction:column;gap:0;position:relative}
+    .plist::before{content:'';position:absolute;left:38px;top:30px;bottom:30px;width:2px;background:linear-gradient(to bottom,var(--accent),var(--accent2),var(--border))}
+    .pnode{display:flex;gap:13px;align-items:flex-start;padding-bottom:22px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+    .pnode:last-child{padding-bottom:0}
+    .pdot{width:39px;height:39px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-weight:800;font-size:.82rem;flex-shrink:0;z-index:1;transition:transform .18s}
+    .pnode:active .pdot{transform:scale(.9)}
+    .pd-done{background:var(--success);color:#050a14}
+    .pd-act{background:var(--accent);color:#050a14;box-shadow:0 0 0 6px rgba(0,212,170,.11)}
+    .pd-lock{background:var(--surface2);color:var(--muted);border:2px solid var(--border)}
+    .pd-ms{background:var(--accent3);color:#050a14}
+    .pcnt{background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:11px 13px;flex:1;transition:border-color .18s}
+    .pctit{font-weight:600;font-size:.84rem;color:var(--text);margin-bottom:2px}
+    .pcmet{font-size:.7rem;color:var(--muted)}
+
+    /* PROFILE */
+    .prof-hero{background:linear-gradient(135deg,rgba(0,212,170,.06),rgba(129,140,248,.06));padding:20px;border-bottom:1px solid var(--border);text-align:center}
+    .avring{width:66px;height:66px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;margin:0 auto 11px;font-family:var(--fd);font-size:1.65rem;font-weight:800;color:#050a14}
+    .agrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:14px 20px}
+    .acard{background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:11px 7px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px}
+    .acard.eon{border-color:var(--accent3);background:rgba(251,191,36,.04)}
+    .aico{font-size:1.45rem}
+    .anm{font-size:.61rem;font-weight:600;color:var(--dim);line-height:1.3}
+
+    /* MOLECULE LOADER */
+    .povl{position:fixed;inset:0;background:rgba(8,13,26,.97);backdrop-filter:blur(10px);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:600;gap:20px;opacity:0;pointer-events:none;transition:opacity .3s}
+    .povl.on{opacity:1;pointer-events:all}
+    .mol{position:relative;width:74px;height:74px}
+    @keyframes o1{from{transform:rotate(0deg) translateX(27px) rotate(0deg)}to{transform:rotate(360deg) translateX(27px) rotate(-360deg)}}
+    @keyframes o2{from{transform:rotate(120deg) translateX(27px) rotate(-120deg)}to{transform:rotate(480deg) translateX(27px) rotate(-480deg)}}
+    @keyframes o3{from{transform:rotate(240deg) translateX(27px) rotate(-240deg)}to{transform:rotate(600deg) translateX(27px) rotate(-600deg)}}
+    .mc2{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:15px;height:15px;border-radius:50%;background:var(--accent);box-shadow:0 0 16px var(--accent)}
+    .md{position:absolute;top:50%;left:50%;width:8px;height:8px;border-radius:50%;margin:-4px}
+    .md:nth-child(2){background:var(--accent2);animation:o1 1.3s linear infinite}
+    .md:nth-child(3){background:var(--accent3);animation:o2 1.3s linear infinite}
+    .md:nth-child(4){background:var(--accent4);animation:o3 1.3s linear infinite}
+    .gsteps{display:flex;flex-direction:column;gap:9px;width:245px}
+    .gst{display:flex;align-items:center;gap:9px;opacity:.3;transition:opacity .4s}
+    .gst.dn,.gst.cr{opacity:1}
+    .gsd{width:8px;height:8px;border-radius:50%;background:var(--border);flex-shrink:0;transition:background .3s}
+    .gst.dn .gsd{background:var(--success)}
+    .gst.cr .gsd{background:var(--accent);box-shadow:0 0 6px var(--accent)}
+
+    #confetti-canvas{position:fixed;inset:0;pointer-events:none;z-index:999}
+    @media(max-height:680px){.fca{gap:11px}.c3w{aspect-ratio:5/3}}
+  </style>
+</head>
+<body>
+<input type="file" id="fi" accept=".pdf,.txt,.docx,.pptx" multiple style="display:none"/>
+<canvas id="confetti-canvas"></canvas>
+
+<div class="povl" id="povl">
+  <div class="mol"><div class="mc2"></div><div class="md"></div><div class="md"></div><div class="md"></div></div>
+  <div style="text-align:center">
+    <div style="font-family:var(--fd);font-size:1.05rem;font-weight:700;color:var(--accent);margin-bottom:4px">Claude AI is reading your files…</div>
+    <div style="font-size:.76rem;color:var(--muted)">Building your personalised study plan</div>
+  </div>
+  <div class="gsteps">
+    <div class="gst"><div class="gsd"></div><span style="font-size:.78rem">Reading course materials</span></div>
+    <div class="gst"><div class="gsd"></div><span style="font-size:.78rem">Extracting key concepts</span></div>
+    <div class="gst"><div class="gsd"></div><span style="font-size:.78rem">Creating flashcards</span></div>
+    <div class="gst"><div class="gsd"></div><span style="font-size:.78rem">Writing 150+ questions</span></div>
+    <div class="gst"><div class="gsd"></div><span style="font-size:.78rem">Building learning path</span></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<div id="app">
+
+<!-- ======== HOME ======== -->
+<div class="sc on" id="s-home">
+  <div class="sbar">
+    <div class="logo">Rx<span style="color:var(--text)">Learn</span></div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <div class="sbadge">🔥<span id="sc">0</span>d</div>
+      <div class="xpill">⭐<span id="xd">0</span></div>
+    </div>
+  </div>
+  <div class="hero">
+    <div class="gsub" id="grsub">Good morning 👋</div>
+    <div class="h1">Your semester,<br><span style="color:var(--accent)">mastered.</span></div>
+    <div class="dxp-row">
+      <span>Daily goal: <span id="dcur">0</span>/<span id="dgl">100</span> XP</span>
+      <span id="dpct" style="color:var(--accent)">0%</span>
+    </div>
+    <div class="pt" style="margin-top:7px"><div class="pf" id="dprg" style="width:0%"></div></div>
+  </div>
+  <div class="stats-strip">
+    <div class="scard"><div class="snum" id="sc1">0</div><div class="slbl">Flashcards</div></div>
+    <div class="scard"><div class="snum" id="sc2">0</div><div class="slbl">Questions</div></div>
+    <div class="scard"><div class="snum" id="sc3">—</div><div class="slbl">Accuracy</div></div>
+  </div>
+  <div class="px" style="margin-bottom:7px"><div class="lbl">Study Modules</div></div>
+  <div class="mgrid">
+    <div class="mc mt" onclick="goFC('all')">
+      <div class="micon mit"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8"><rect x="2" y="4" width="20" height="16" rx="3"/><path d="M2 10h20"/></svg></div>
+      <div><div class="mtitle">Flashcards</div><div class="mct" id="fcmc">0 cards</div></div>
+    </div>
+    <div class="mc mi" onclick="goQ('all')">
+      <div class="micon mii"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" stroke-width="1.8"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
+      <div><div class="mtitle">Quiz Mode</div><div class="mct" id="qmc">0 questions</div></div>
+    </div>
+    <div class="mc ma" onclick="go('s-path')">
+      <div class="micon mia"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent3)" stroke-width="1.8"><circle cx="12" cy="5" r="2"/><circle cx="19" cy="12" r="2"/><circle cx="5" cy="19" r="2"/><path d="M12 7s7 2 7 5M19 14s-7 2-14 5"/></svg></div>
+      <div><div class="mtitle">Learning Path</div><div class="mct">Guided journey</div></div>
+    </div>
+    <div class="mc mp" onclick="go('s-profile')">
+      <div class="micon mip"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent4)" stroke-width="1.8"><path d="M8 21h8M12 17v4M17 3H7l1 7a4 4 0 0 0 8 0l1-7z"/><path d="M17 3c0 0 2 0 2 3s-2 3-2 3M7 3c0 0-2 0-2 3s2 3 2 3"/></svg></div>
+      <div><div class="mtitle">Achievements</div><div class="mct" id="amc">0 earned</div></div>
+    </div>
+  </div>
+  <div class="px" style="margin-bottom:7px"><div class="lbl">Study by Topic</div></div>
+  <div class="px spad" style="display:flex;flex-wrap:wrap;gap:7px">
+    <button onclick="goFC('LMIS')" style="all:unset;cursor:pointer"><span class="pill pt1">📋 LMIS</span></button>
+    <button onclick="goFC('Pharmacokinetics')" style="all:unset;cursor:pointer"><span class="pill pt2">⚗️ Pharmacokinetics</span></button>
+    <button onclick="goFC('CAM')" style="all:unset;cursor:pointer"><span class="pill pt4">🌿 CAM / Reiki</span></button>
+    <button onclick="goFC('Management')" style="all:unset;cursor:pointer"><span class="pill pt3">📊 Management</span></button>
+    <button onclick="goQ('LMIS')" style="all:unset;cursor:pointer"><span class="pill pt1">Quiz: LMIS</span></button>
+    <button onclick="goQ('Pharmacokinetics')" style="all:unset;cursor:pointer"><span class="pill pt2">Quiz: PK</span></button>
+    <button onclick="go('s-upload')" style="all:unset;cursor:pointer"><span class="pill" style="background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--muted)">+ Upload More</span></button>
+  </div>
+</div>
+
+<!-- ======== UPLOAD ======== -->
+<div class="sc" id="s-upload">
+  <div class="sbar">
+    <button onclick="go('s-home')" style="border:none;background:none;color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:4px;font-size:.8rem;padding:5px">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M19 12H5M12 19l-7-7 7-7"/></svg> Back
+    </button>
+    <div style="font-family:var(--fd);font-weight:700;font-size:.97rem">Add Materials</div>
+    <div style="width:55px"></div>
+  </div>
+  <div class="px" style="display:flex;flex-direction:column;gap:13px;overflow-y:auto;flex:1;padding-top:8px">
+    <div style="background:rgba(0,212,170,.06);border:1px solid rgba(0,212,170,.2);border-radius:var(--rs);padding:13px">
+      <div style="font-size:.78rem;font-weight:600;color:var(--accent);margin-bottom:3px">✅ 5 files pre-loaded</div>
+      <div style="font-size:.73rem;color:var(--muted)">LMIS 2.1 & 2.2 · Clinical PK · PHARM 573 Reiki · Management Unit 1a — all flashcards and questions are already generated.</div>
+    </div>
+    <div id="uz" style="border:2px dashed var(--border);border-radius:var(--r);padding:34px 18px;text-align:center;cursor:pointer;transition:all .2s" onclick="document.getElementById('fi').click()">
+      <div style="width:52px;height:52px;background:rgba(0,212,170,.08);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 13px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" width="24" height="24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17,8 12,3 7,8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      </div>
+      <div class="h3" style="margin-bottom:4px">Add more files</div>
+      <div style="font-size:.74rem;color:var(--muted)">PDF · TXT · PPTX · DOCX</div>
+    </div>
+    <div id="nfl" style="display:flex;flex-direction:column;gap:7px"></div>
+    <div>
+      <div class="lbl" style="margin-bottom:7px">Your Year / Context</div>
+      <input id="ctx" type="text" placeholder="e.g. PharmD Year 5, KNUST…" style="width:100%;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--rs);padding:12px;color:var(--text);font-family:var(--fb);font-size:.87rem;outline:none;transition:border-color .2s" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"/>
+    </div>
+    <button class="btn bprimary" id="gbtn" onclick="startGen()" style="opacity:.4" disabled>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+      Generate with New Files (AI)
+    </button>
+    <div style="font-size:.7rem;color:var(--muted);text-align:center;line-height:1.6;padding-bottom:90px">
+      Your current content is already loaded from your uploaded files.<br>Add new files above to expand your study plan.
+    </div>
+  </div>
+</div>
+
+<!-- ======== FLASHCARDS ======== -->
+<div class="sc" id="s-fc">
+  <div class="fch">
+    <button onclick="go('s-home')" style="border:none;background:none;color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:3px;font-size:.76rem;padding:4px">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14"><path d="M19 12H5M12 19l-7-7 7-7"/></svg> Exit
+    </button>
+    <div class="fcc"><span id="fccur">1</span><div class="pt" style="width:68px"><div class="pf" id="fcprg" style="width:0%"></div></div><span id="fctot">0</span></div>
+    <div class="pill pt1" id="fctopic" style="font-size:.61rem">—</div>
+  </div>
+  <div class="fca">
+    <div class="c3w" id="c3" onclick="flip()">
+      <div class="c3i">
+        <div class="cface cfront">
+          <div class="clbl">CONCEPT</div>
+          <div class="ctxt" id="ffront">Loading…</div>
+          <div class="chint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>Tap to reveal</div>
+        </div>
+        <div class="cface cback">
+          <div class="clbl" style="color:var(--accent)">ANSWER</div>
+          <div class="ctxt" id="fback" style="font-size:.88rem">—</div>
+          <div class="chint" style="color:var(--accent)">Mark your confidence ↓</div>
+        </div>
+      </div>
+    </div>
+    <div class="swpa">
+      <button class="swpb sw-no" onclick="cresp(false)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M18 6L6 18M6 6l12 12"/></svg>Still Learning</button>
+      <button class="swpb sw-ok" onclick="cresp(true)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M20 6L9 17l-5-5"/></svg>Got It!</button>
+    </div>
+    <div style="font-size:.72rem;color:var(--muted)">✅ <span id="fkn">0</span> mastered · 🔁 <span id="frv">0</span> to review</div>
+  </div>
+</div>
+
+<!-- ======== QUIZ ======== -->
+<div class="sc" id="s-q">
+  <div class="qhdr">
+    <div class="qmeta">
+      <button onclick="go('s-home')" style="border:none;background:none;color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:3px;font-size:.76rem;padding:0">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14"><path d="M19 12H5M12 19l-7-7 7-7"/></svg> Exit
+      </button>
+      <div style="font-size:.73rem;color:var(--muted)">Q <span id="qcur">1</span> of <span id="qtot">0</span></div>
+      <div class="pill pt3" id="qspill">Score: 0</div>
+    </div>
+    <div class="pt"><div class="pf" id="qprg" style="width:0%"></div></div>
+  </div>
+  <div class="qbody" id="qbody"><div style="padding:40px 0;text-align:center;color:var(--muted)">Loading…</div></div>
+  <div class="qftr"><button class="btn bprimary" id="nqb" onclick="nxtQ()" style="display:none">Next Question <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button></div>
+</div>
+
+<!-- ======== PATH ======== -->
+<div class="sc" id="s-path">
+  <div class="sbar">
+    <div class="logo" style="font-size:.97rem">Learning Path</div>
+    <div class="pill pt1" id="ppill">0% done</div>
+  </div>
+  <div class="px" style="margin-bottom:9px;font-size:.78rem;color:var(--muted);line-height:1.55">Your personalised semester journey — LMIS → Pharmacokinetics → CAM → Management.</div>
+  <div class="plist spad" id="plist"></div>
+</div>
+
+<!-- ======== PROFILE ======== -->
+<div class="sc" id="s-profile">
+  <div class="prof-hero">
+    <div class="avring">P</div>
+    <div class="h2" style="margin-bottom:3px">PharmD Student</div>
+    <div style="font-size:.78rem;color:var(--muted)">Level <span id="plvl">1</span> · <span id="pxp">0</span> XP total</div>
+    <div style="margin-top:11px">
+      <div class="pt"><div class="pf" id="plvlp" style="width:0%"></div></div>
+      <div style="font-size:.66rem;color:var(--muted);margin-top:4px;text-align:right"><span id="pxpn">100</span> XP to Level Up</div>
+    </div>
+  </div>
+  <div class="px" style="padding-top:14px">
+    <div class="lbl" style="margin-bottom:9px">This Week</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div class="card" style="padding:13px"><div class="snum" id="p1">0</div><div class="slbl">Cards reviewed</div></div>
+      <div class="card" style="padding:13px"><div class="snum" id="p2">0</div><div class="slbl">Qs answered</div></div>
+      <div class="card" style="padding:13px"><div class="snum" id="p3">—</div><div class="slbl">Accuracy</div></div>
+      <div class="card" style="padding:13px"><div class="snum" id="p4">0</div><div class="slbl">Streak 🔥</div></div>
+    </div>
+  </div>
+  <div class="px" style="padding-top:14px;padding-bottom:4px"><div class="lbl">Achievements</div></div>
+  <div class="agrid spad" id="agrid"></div>
+</div>
+
+</div><!-- #app -->
+
+<!-- BOTTOM NAV -->
+<nav class="bnav">
+  <button class="nb on" id="nb0" onclick="go('s-home')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>Home</button>
+  <button class="nb" id="nb1" onclick="goFC('all')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="4" width="20" height="16" rx="3"/><path d="M2 10h20"/></svg>Cards</button>
+  <button class="nb" id="nb2" onclick="goQ('all')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>Quiz</button>
+  <button class="nb" id="nb3" onclick="go('s-path')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="5" r="2"/><circle cx="19" cy="12" r="2"/><circle cx="5" cy="19" r="2"/><path d="M12 7s7 2 7 5M19 14s-7 2-14 5"/></svg>Path</button>
+  <button class="nb" id="nb4" onclick="go('s-profile')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profile</button>
+</nav>
+
+<script>
+/* ── API ─────────────────────────────────────────────────────── */
+const API='https://api.anthropic.com/v1/messages', MDL='claude-sonnet-4-20250514';
+
+/* ── CURRICULUM DATA (from your 5 uploaded files) ────────────── */
+const FC=[
+  // LMIS
+  {f:"What does LMIS stand for and what is its core purpose?",b:"Logistics Management Information System — collects, organises, and presents logistics data to enable supply chain decision-making.",t:"LMIS"},
+  {f:"What are the 3 essential data items in LMIS?",b:"1. Stock on Hand (usable stock at a point in time)  2. Rate of Consumption (average quantity dispensed per period)  3. Losses & Adjustments (expired, damaged, or inter-facility transfers).",t:"LMIS"},
+  {f:"Distinguish between a Record and a Report in LMIS.",b:"Records collect data and remain at the facility (e.g. bin card). Reports move data from one logistics level to another.",t:"LMIS"},
+  {f:"Name the 3 types of logistics records.",b:"1. Stockkeeping Records (bin card, stores ledger)  2. Transaction Records (RIRV, waybill)  3. Consumption Records (daily registers, tally sheets).",t:"LMIS"},
+  {f:"Give 4 examples of Stockkeeping Records.",b:"Bin Card · Inventory Control Card · Stores Ledger · Stock Cards.",t:"LMIS"},
+  {f:"Give 5 examples of Transaction Records.",b:"Requisition & Issue Voucher · Waybill · Issue Voucher · Packing List · Delivery Notes · Internal Requisition.",t:"LMIS"},
+  {f:"Give 3 examples of Consumption Records.",b:"Daily Activity Registers · Logs/Tally/Tick Sheets · Treatment/Dispensing Register · Prescription Register.",t:"LMIS"},
+  {f:"What are the Six Rights of LMIS?",b:"Right Information · Right Quantity · Right Condition (accurate) · Right Time · Right Place (correct level) · Right Cost.",t:"LMIS"},
+  {f:"What is the purpose of Feedback Reports?",b:"Monitor system performance, inform lower-level staff, motivate performance, and flag stock-out or system failures.",t:"LMIS"},
+  {f:"What is 'Rate of Consumption' in LMIS?",b:"Average quantity of commodities dispensed to users during a specific time period — used to set reorder levels and predict needs.",t:"LMIS"},
+  {f:"Define Losses vs Adjustments in LMIS.",b:"Losses = commodities removed from distribution for reasons other than consumption (expiry, damage, theft). Adjustments = inter-facility transfers or counting corrections (can be + or −).",t:"LMIS"},
+  {f:"What is the role of LMIS in the supply chain cycle?",b:"Sits at the centre — supporting pipeline monitoring, organisation & staffing, budgeting, supervision, and evaluation. Connects all supply chain components.",t:"LMIS"},
+  {f:"List the LMIS forms used in Ghana (Set 1).",b:"1. Worksheet for Max/Reorder Levels & EOP  2. Requisition Issue & Receipt Voucher (RIRV)  3. Waybill  4. Bin Card  5. Stores Ledger.",t:"LMIS"},
+  {f:"List the LMIS forms used in Ghana (Set 2).",b:"1. Prescription Register  2. Family Planning Daily Summary & Monthly Totals  3. Stock Valuation Form  4. Vaccine Return Form  5. Loss Form A, B & C.",t:"LMIS"},
+  {f:"Describe Ghana's health supply chain information flow.",b:"CBD Agents → Health Facilities ↔ District Health Directorate ↔ Regional Health Directorate (RMS) ↔ SSDM/National Programmes ↔ P&S/CMS. Tertiary Facilities connect to CMS.",t:"LMIS"},
+  {f:"What do CMS and RMS stand for in Ghana?",b:"CMS = Central Medical Stores (national warehouse). RMS = Regional Medical Stores (regional distribution centre).",t:"LMIS"},
+  {f:"What data does a Transaction Record capture?",b:"Quantity ordered/shipped/received · Authorisation to issue · Signatures · Proof of receipt · Dates.",t:"LMIS"},
+  // PHARMACOKINETICS
+  {f:"Define Pharmacokinetics (PK).",b:"Study of what the body does to a drug over time — Absorption, Distribution, Metabolism, and Excretion (ADME).",t:"Pharmacokinetics"},
+  {f:"Define Bioavailability (F).",b:"Fraction of an administered dose that reaches systemic circulation unchanged. IV = 100% (F=1). Oral F is reduced by absorption barriers and first-pass metabolism.",t:"Pharmacokinetics"},
+  {f:"What is Volume of Distribution (Vd)?",b:"Vd = Dose / Cp. Apparent volume into which a drug distributes. High Vd (>1 L/kg) = lipophilic, tissue-bound. Low Vd (<0.1 L/kg) = hydrophilic, plasma-bound.",t:"Pharmacokinetics"},
+  {f:"Define Clearance (CL).",b:"Volume of blood cleared of drug per unit time (mL/min or L/hr). CL = Dose/AUC. Most direct measure of elimination capacity. Used to calculate maintenance dose.",t:"Pharmacokinetics"},
+  {f:"What is Half-Life (t½) and how is it calculated?",b:"t½ = 0.693 × Vd / CL. Time for plasma concentration to fall by 50%. Steady state and full elimination both take 4–5 half-lives.",t:"Pharmacokinetics"},
+  {f:"What is steady state?",b:"When rate in = rate out. Achieved after 4–5 half-lives. Plasma concentration fluctuates between Cmax and Cmin at steady state.",t:"Pharmacokinetics"},
+  {f:"What is AUC?",b:"Area Under the plasma concentration-time Curve. Total drug exposure. AUC = Dose/CL. Used to calculate F and PK/PD targets (e.g. AUC/MIC for vancomycin).",t:"Pharmacokinetics"},
+  {f:"What is First-Order Kinetics?",b:"A constant FRACTION of drug eliminated per unit time. Most drugs obey first-order kinetics. t½ is constant regardless of dose.",t:"Pharmacokinetics"},
+  {f:"What is Zero-Order Kinetics?",b:"A constant AMOUNT eliminated per unit time — occurs when elimination pathways are saturated (e.g. ethanol, phenytoin at high doses). t½ is NOT constant.",t:"Pharmacokinetics"},
+  {f:"Explain the First-Pass Effect.",b:"Presystemic metabolism of an oral drug by the gut wall and liver before it reaches systemic circulation, reducing bioavailability.",t:"Pharmacokinetics"},
+  {f:"What factors affect drug distribution?",b:"Protein binding (bound = inactive) · Lipophilicity (high → fat/CNS) · Molecular size · Ionisation (pKa/pH) · Tissue perfusion.",t:"Pharmacokinetics"},
+  {f:"How does renal impairment affect PK?",b:"↓ renal CL → ↑ t½ → drug accumulates → toxicity risk. Adjust dose or extend dosing interval. Use CrCl or eGFR to guide adjustment.",t:"Pharmacokinetics"},
+  {f:"What is hepatic extraction ratio?",b:"Fraction of drug removed in one hepatic pass. High ER drugs (lidocaine, propranolol) have significant first-pass effect and are very sensitive to liver blood flow changes.",t:"Pharmacokinetics"},
+  {f:"What is Cmax and Tmax?",b:"Cmax = maximum plasma concentration after a dose. Tmax = time to reach Cmax. Important for assessing peak effects and toxicity.",t:"Pharmacokinetics"},
+  {f:"Describe the two-compartment PK model.",b:"Central compartment (blood, highly perfused organs) + peripheral compartment (muscle, fat). Bi-exponential decline: α phase = distribution, β phase = elimination.",t:"Pharmacokinetics"},
+  {f:"How is a loading dose calculated?",b:"Loading dose = Vd × target Css. Used to rapidly achieve therapeutic concentration, especially for drugs with long half-lives.",t:"Pharmacokinetics"},
+  {f:"How is maintenance dose calculated?",b:"Maintenance dose = CL × target Css × dosing interval. Clearance is the key determinant of how much drug is needed per unit time.",t:"Pharmacokinetics"},
+  // CAM / REIKI
+  {f:"Define Complementary vs Alternative Medicine.",b:"Complementary = CAM used IN ADDITION to conventional treatment. Alternative = CAM used INSTEAD OF conventional treatment. When combined = Integrative medicine.",t:"CAM"},
+  {f:"What is Reiki?",b:"A Japanese energy healing technique (Mikao Usui, early 20th C) involving channelling life-force energy ('ki') through practitioner's hands to promote relaxation and healing.",t:"CAM"},
+  {f:"What does 'Reiki' mean?",b:"'Rei' = universal/spiritual wisdom; 'Ki' = life-force energy. Related to Chinese 'qi' and Indian 'prana'.",t:"CAM"},
+  {f:"What is the theoretical mechanism of Reiki?",b:"Disruption of ki flow causes illness. Practitioners channel universal energy to restore balance. Not based on conventional biomedical mechanisms.",t:"CAM"},
+  {f:"What does evidence say about Reiki?",b:"Limited and methodologically weak evidence. Some small studies show benefits for anxiety, pain, fatigue. No high-quality RCTs confirm efficacy beyond placebo. Professional bodies do not endorse it.",t:"CAM"},
+  {f:"NCCIH classification of CAM therapies.",b:"1. Natural Products (herbs, supplements, probiotics)  2. Mind-Body Practices (meditation, yoga, tai chi)  3. Other Practices (Reiki, chiropractic, traditional healers).",t:"CAM"},
+  {f:"Pharmacist's role regarding CAM use.",b:"Counsel patients on evidence · Screen for herb-drug interactions · Inform prescribers · Document CAM in patient records · Respect autonomy without endorsing unproven therapies.",t:"CAM"},
+  {f:"Key herb-drug interactions to know.",b:"St. John's Wort (CYP3A4 inducer) → ↓ warfarin, OCP, antiretrovirals. Ginkgo + anticoagulants → bleeding. Garlic + warfarin → bleeding. Grapefruit (CYP3A4 inhibitor) → ↑ statin, Ca-channel blocker levels.",t:"CAM"},
+  {f:"Why is St. John's Wort clinically significant?",b:"Potent inducer of CYP3A4 and P-glycoprotein → significantly reduces plasma levels of warfarin, oral contraceptives, HIV protease inhibitors, digoxin, cyclosporin → therapeutic failure.",t:"CAM"},
+  {f:"What is grapefruit juice's mechanism of interaction?",b:"Furanocoumarins irreversibly inhibit intestinal CYP3A4 → ↓ first-pass metabolism → ↑ bioavailability of many drugs (statins, CCBs, immunosuppressants).",t:"CAM"},
+  // MANAGEMENT
+  {f:"Define Management (Robbins).",b:"Coordinating and overseeing others' work activities so they are completed efficiently and effectively to achieve organisational goals.",t:"Management"},
+  {f:"What are the 4 Functions of Management?",b:"Planning (set goals & strategies) · Organising (structure work & resources) · Leading (motivate & direct people) · Controlling (monitor, compare, correct performance).",t:"Management"},
+  {f:"Efficiency vs Effectiveness.",b:"Efficiency = doing things right (minimum waste of resources). Effectiveness = doing the right things (achieving goals). Best management = high efficiency AND high effectiveness.",t:"Management"},
+  {f:"3 levels of management and their characteristics.",b:"Top Managers (CEO, MD — organisation-wide decisions) · Middle Managers (regional/store — manage first-liners) · First-Line Managers (supervisors — manage non-managerial employees).",t:"Management"},
+  {f:"Mintzberg's 3 types of managerial roles.",b:"Interpersonal (figurehead, leader, liaison) · Informational (monitor, disseminator, spokesperson) · Decisional (entrepreneur, disturbance handler, resource allocator, negotiator).",t:"Management"},
+  {f:"Katz's 3 managerial skills.",b:"Conceptual (abstract/strategic thinking — key for TOP managers) · Human (working with people — ALL levels) · Technical (specific knowledge — key for FIRST-LINE managers).",t:"Management"},
+  {f:"Define an Organisation.",b:"A socially designed unit that engages in coordinated activities to achieve a goal, has an identifiable boundary, and is linked to the external environment.",t:"Management"},
+  {f:"What is the Universality of Management?",b:"Management is needed in all types/sizes of organisations, at all levels, in all functional areas, and across all countries — profit and not-for-profit.",t:"Management"},
+  {f:"What changes are reshaping managers' jobs?",b:"Digitisation (virtual workplaces, mobile workforce) · Increased ethics/accountability · Increased competitiveness (innovation, globalisation) · Changing security threats (risk management).",t:"Management"},
+  {f:"What is Sustainability in management?",b:"A company's ability to achieve goals and increase long-term shareholder value by integrating economic, environmental, and social opportunities into business strategies.",t:"Management"},
+  {f:"Why are managers important to organisations?",b:"Their skills are critical for getting things done in uncertain/complex times. The employee-supervisor relationship quality is the most important variable in productivity and loyalty.",t:"Management"},
+];
+
+const QS=[
+  // LMIS
+  {q:"The primary purpose of LMIS is to:",o:["A. Train health workers","B. Collect, organise, and present logistics data for supply chain decisions","C. Purchase and distribute medicines","D. Monitor patient adherence"],a:1,e:"LMIS collects, organises and presents logistics data so decision-makers can manage the supply chain effectively.",t:"LMIS",d:"easy"},
+  {q:"Which is NOT one of the 3 essential LMIS data items?",o:["A. Stock on Hand","B. Rate of Consumption","C. Patient Diagnosis Records","D. Losses and Adjustments"],a:2,e:"The 3 essential data items are: Stock on Hand, Rate of Consumption, and Losses/Adjustments.",t:"LMIS",d:"easy"},
+  {q:"A bin card is best classified as a:",o:["A. Report","B. Consumption Record","C. Stockkeeping Record","D. Transaction Record"],a:2,e:"A bin card records storage information (stock on hand, losses) and remains at the facility — it is a Stockkeeping Record.",t:"LMIS",d:"easy"},
+  {q:"A Requisition, Issue and Receipt Voucher (RIRV) is an example of which record type?",o:["A. Stockkeeping Record","B. Transaction Record","C. Consumption Record","D. Feedback Report"],a:1,e:"Transaction Records document stock movement between facilities and serve as proof of requisition, issue, and delivery.",t:"LMIS",d:"easy"},
+  {q:"In Ghana's supply chain, CBD Agents are at which level?",o:["A. National, below CMS","B. Below health facilities — the lowest level","C. District level, same as DHD","D. Regional level, same as RMS"],a:1,e:"CBD (Community-Based Distribution) Agents are at the lowest supply chain level, receiving commodities from health facilities to serve community members.",t:"LMIS",d:"medium"},
+  {q:"Which is one of the Six Rights of LMIS?",o:["A. Right patient","B. Right condition (accurate)","C. Right health worker","D. Right temperature"],a:1,e:"The Six Rights for LMIS: right Information, right Quantity, right Condition (accurate), right Time, right Place, right Cost.",t:"LMIS",d:"medium"},
+  {q:"Feedback reports are sent from higher to lower levels to:",o:["A. Authorise procurement","B. Motivate staff and inform them of system performance at their level","C. Replace stockkeeping records","D. Override district ordering decisions"],a:1,e:"Feedback reports inform lower-level staff of system performance, motivate them, and flag any stock or performance problems.",t:"LMIS",d:"medium"},
+  {q:"A transfer from one facility to another at the same level is recorded as:",o:["A. A positive consumption figure","B. A loss","C. An adjustment","D. A receipt only"],a:2,e:"Inter-facility transfers at the same level are classified as Adjustments — they can be positive or negative.",t:"LMIS",d:"medium"},
+  {q:"The Family Planning Daily Summary is best classified as which type of record?",o:["A. Stockkeeping","B. Transaction","C. Consumption","D. Feedback"],a:2,e:"Consumption Records capture the quantity of each commodity dispensed to clients — the FP Daily Summary records daily contraceptive dispensing.",t:"LMIS",d:"medium"},
+  {q:"The Stores Ledger differs from the Bin Card mainly because:",o:["A. Used only at national level","B. Records monetary values of stock in addition to quantities","C. Records consumption while the Bin Card records stock-outs","D. Bin cards are for transaction records"],a:1,e:"The Stores Ledger typically records both quantities and monetary values, providing a more comprehensive inventory financial record.",t:"LMIS",d:"hard"},
+  {q:"In Ghana's LMIS flow, SSDM communicates with which levels?",o:["A. CBD Agents only","B. National Programmes AND Regional Health Directorate/RMS","C. Health facilities only","D. CMS only"],a:1,e:"In the Ghana information flow diagram, SSDM connects bidirectionally with National Programmes and with the Regional Health Directorate/RMS network.",t:"LMIS",d:"hard"},
+  {q:"A pharmacist finds 180 physical units but the bin card shows 200. The 20-unit discrepancy should be recorded as:",o:["A. A consumption figure","B. A negative adjustment","C. A transaction record issue","D. Not recorded if under 10%"],a:1,e:"Discrepancies between recorded and physical stock are recorded as adjustments (negative, in this case −20 units). Adjustments correct counting errors.",t:"LMIS",d:"hard"},
+  // PHARMACOKINETICS
+  {q:"Drug has t½=8hrs. How long to reach steady state?",o:["A. 8 hours","B. 16 hours","C. 32–40 hours","D. 4 hours"],a:2,e:"Steady state is reached after 4–5 half-lives. 4–5 × 8 hrs = 32–40 hours.",t:"Pharmacokinetics",d:"easy"},
+  {q:"Which route gives 100% bioavailability?",o:["A. Oral tablet","B. Sublingual","C. Intravenous (IV)","D. Intramuscular (IM)"],a:2,e:"IV administration bypasses all absorption barriers and first-pass metabolism, giving F=1.0 (100%).",t:"Pharmacokinetics",d:"easy"},
+  {q:"A highly lipophilic drug is expected to have:",o:["A. Small Vd and high plasma protein binding","B. Large Vd and extensive tissue distribution","C. Rapid renal excretion unchanged","D. Low CNS penetration"],a:1,e:"Lipophilic drugs partition into adipose tissue and cell membranes → large Vd. They also cross the blood-brain barrier more easily.",t:"Pharmacokinetics",d:"easy"},
+  {q:"The first-pass effect is:",o:["A. Rapid distribution of IV drug to perfused organs","B. Presystemic metabolism by gut wall and liver before reaching systemic circulation","C. Saturation of protein binding at high concentrations","D. Rapid renal filtration after first dose"],a:1,e:"After oral dosing, drug passes through the gut wall and liver via portal vein and may be substantially metabolised before reaching systemic circulation.",t:"Pharmacokinetics",d:"easy"},
+  {q:"Gentamicin patient has elevated serum creatinine (renal impairment). Expected PK change:",o:["A. Decreased Vd and increased t½","B. Increased CL and shortened t½","C. Decreased CL and prolonged t½","D. No change"],a:2,e:"Renal impairment ↓ CL → prolonged t½ (t½=0.693×Vd/CL) → drug accumulation → nephrotoxicity and ototoxicity risk.",t:"Pharmacokinetics",d:"medium"},
+  {q:"Which PK parameter is most directly used to calculate MAINTENANCE dose?",o:["A. Vd","B. t½","C. Clearance (CL)","D. Tmax"],a:2,e:"Maintenance dose = CL × target Css × dosing interval. Clearance determines how much drug is eliminated per unit time.",t:"Pharmacokinetics",d:"medium"},
+  {q:"Loading dose is calculated primarily using:",o:["A. Clearance","B. Half-life","C. Volume of Distribution (Vd)","D. AUC"],a:2,e:"Loading dose = Vd × target Css. Vd determines how widely drug distributes and how much is needed to rapidly hit target concentration.",t:"Pharmacokinetics",d:"medium"},
+  {q:"Drug A: Vd=3 L/kg. Drug B: Vd=0.1 L/kg. Which is correct?",o:["A. Drug A is confined to plasma","B. Drug B distributes extensively into tissues","C. Drug A distributes extensively into tissues","D. Both have similar distribution"],a:2,e:"Vd 3 L/kg >> total body water (~0.6 L/kg) → Drug A distributes extensively into tissues. Drug B stays mainly in plasma.",t:"Pharmacokinetics",d:"medium"},
+  {q:"Phenytoin at therapeutic doses shows zero-order kinetics. This means:",o:["A. t½ is constant at 24 hrs","B. Fixed percentage eliminated per hour","C. Constant amount eliminated per hour regardless of concentration","D. Complete first-pass metabolism"],a:2,e:"Zero-order: elimination pathways are saturated → constant amount (not fraction) eliminated. Small dose increases → disproportionate rises in plasma concentration.",t:"Pharmacokinetics",d:"hard"},
+  {q:"Warfarin patient starts rifampicin (CYP450 inducer). Expected outcome:",o:["A. Increased warfarin → bleeding risk → reduce dose","B. Decreased warfarin metabolism → increase dose","C. Increased warfarin metabolism → decreased levels → increase dose","D. No interaction — warfarin is not a CYP substrate"],a:2,e:"Rifampicin induces CYP2C9 → ↑ warfarin metabolism → ↓ plasma warfarin → subtherapeutic anticoagulation → INR falls → increase warfarin dose.",t:"Pharmacokinetics",d:"hard"},
+  {q:"The α phase in a two-compartment PK model represents:",o:["A. Renal elimination","B. Distribution from central to peripheral compartment","C. Hepatic first-pass metabolism","D. Protein binding saturation"],a:1,e:"The α (distribution) phase is the initial steep decline as drug moves from blood/central compartment to peripheral tissues. The slower β phase = elimination.",t:"Pharmacokinetics",d:"hard"},
+  {q:"Why does vancomycin require AUC/MIC monitoring (target 400-600 mg·h/L)?",o:["A. Concentration-dependent killing","B. Time-dependent killing; AUC/MIC best predicts efficacy and minimises nephrotoxicity","C. Trough monitoring is sufficient","D. Zero-order kinetics"],a:1,e:"Vancomycin has AUC-dependent killing. AUC/MIC ratio predicts bactericidal efficacy against MRSA and correlates better with nephrotoxicity prevention than trough alone.",t:"Pharmacokinetics",d:"hard"},
+  {q:"Severe liver cirrhosis patient takes a high hepatic extraction ratio drug orally. Expected consequence:",o:["A. Increased renal CL compensates","B. Reduced first-pass metabolism → substantially increased oral bioavailability → toxicity risk","C. Reduced Vd due to decreased plasma protein","D. Faster elimination due to altered gut motility"],a:1,e:"High ER drugs depend on liver enzyme capacity and blood flow. In cirrhosis, both are reduced → dramatically ↑ oral bioavailability → toxicity at normal doses.",t:"Pharmacokinetics",d:"hard"},
+  // CAM
+  {q:"Complementary medicine BEST means:",o:["A. Evidence-based medicine alongside conventional treatment","B. CAM used in addition to (not instead of) conventional medicine","C. Any herbal remedy available OTC","D. Alternative systems used exclusively instead of conventional medicine"],a:1,e:"Complementary = used with conventional medicine. Alternative = used instead of conventional medicine.",t:"CAM",d:"easy"},
+  {q:"'Reiki' is derived from Japanese words meaning:",o:["A. Rei (body) + Ki (mind)","B. Rei (universal wisdom) + Ki (life-force energy)","C. Rei (relaxation) + Ki (healing touch)","D. Rei (water) + Ki (fire)"],a:1,e:"Rei = universal/spiritually guided; Ki = life-force energy. Related to Chinese 'qi' and Indian 'prana'.",t:"CAM",d:"easy"},
+  {q:"According to Reiki theory, illness occurs when:",o:["A. Immune system fails","B. Life-force energy (ki) is disrupted or blocked","C. Pharmacological receptors desensitise","D. Mitochondrial function is impaired"],a:1,e:"Reiki holds that disruption of ki flow leads to stress and illness. Practitioners channel energy to restore balance.",t:"CAM",d:"easy"},
+  {q:"Current evidence base for Reiki:",o:["A. Multiple RCTs confirm superiority over placebo for cancer pain","B. Limited, methodologically weak evidence; no high-quality RCTs confirm efficacy beyond placebo","C. WHO endorses as first-line for anxiety","D. Equivalent evidence to CBT for stress"],a:1,e:"Evidence is limited by poor methodology. Professional bodies do not endorse Reiki as evidence-based treatment.",t:"CAM",d:"easy"},
+  {q:"St. John's Wort causes which drug interaction?",o:["A. Inhibits CYP3A4 → increases drug levels","B. Induces CYP3A4 → decreases warfarin, OCP, antiretroviral levels","C. Blocks renal secretion → increases digoxin","D. Displaces warfarin from albumin — only initial effect"],a:1,e:"St. John's Wort induces CYP3A4 and P-glycoprotein → significantly reduces plasma levels of warfarin, OCPs, HIV protease inhibitors, digoxin → therapeutic failure.",t:"CAM",d:"medium"},
+  {q:"Pharmacist's PRIMARY responsibility when patient discloses herbal supplement use:",o:["A. Advise to stop all herbal remedies immediately","B. Counsel on evidence, check interactions, document in patient record","C. Recommend a specific brand","D. Refer immediately to a traditional healer"],a:1,e:"Pharmacists provide evidence-based counselling, check herb-drug interactions, inform prescribers, document CAM use, and respect patient autonomy.",t:"CAM",d:"medium"},
+  {q:"Grapefruit juice interacts with drugs by:",o:["A. Inducing CYP3A4 in gut wall → increased metabolism","B. Inhibiting intestinal CYP3A4 → reduced first-pass → increased bioavailability","C. Chelating drug molecules in stomach","D. Alkalising gastric pH"],a:1,e:"Furanocoumarins in grapefruit irreversibly inhibit intestinal CYP3A4 → ↓ first-pass metabolism → ↑ plasma concentrations of statins, CCBs, immunosuppressants.",t:"CAM",d:"medium"},
+  {q:"Which herbal supplement poses the greatest bleeding risk with anticoagulants?",o:["A. Echinacea","B. Valerian","C. Ginkgo biloba","D. Peppermint"],a:2,e:"Ginkgo biloba inhibits platelet-activating factor → antiplatelet effect. Combined with warfarin/aspirin → significantly increased bleeding risk.",t:"CAM",d:"hard"},
+  {q:"A Reiki practitioner claims their therapy cured metastatic cancer. Pharmacist's best response:",o:["A. Accept — individual testimonials are valid evidence","B. Acknowledge patient's experience; explain anecdotal reports are not evidence of causation; encourage continuation of conventional treatment","C. Dismiss the belief entirely","D. Recommend switching to Reiki and discontinuing chemotherapy"],a:1,e:"Respect autonomy while providing evidence-based guidance. Anecdotal reports lack controls, may represent regression to the mean or placebo effect. Conventional cancer treatment must not be abandoned.",t:"CAM",d:"hard"},
+  // MANAGEMENT
+  {q:"Manager achieves goals but wastes significant resources. This describes being:",o:["A. Both efficient and effective","B. Effective but not efficient","C. Efficient but not effective","D. Neither"],a:1,e:"Effectiveness = achieving goals. Efficiency = achieving goals with minimum waste. Achieving goals WITH waste = effective but not efficient.",t:"Management",d:"easy"},
+  {q:"Which management function involves defining goals and establishing strategies?",o:["A. Organising","B. Leading","C. Planning","D. Controlling"],a:2,e:"Planning involves setting organisational goals, establishing strategies, and developing coordinated plans.",t:"Management",d:"easy"},
+  {q:"A hospital pharmacy manager supervising dispensing staff is classified as:",o:["A. Top Manager","B. Non-managerial employee","C. Middle Manager","D. First-Line Manager"],a:3,e:"First-line managers directly manage non-managerial employees (dispensary staff). Also called supervisors or department managers.",t:"Management",d:"easy"},
+  {q:"The 'Controlling' function of management is:",o:["A. Directing and motivating employees","B. Arranging work to accomplish goals","C. Monitoring performance, comparing to goals, correcting deviations","D. Establishing long-term strategy"],a:2,e:"Controlling = monitoring actual performance vs standards and taking corrective action when performance deviates.",t:"Management",d:"easy"},
+  {q:"Mintzberg's decisional roles include all EXCEPT:",o:["A. Entrepreneur","B. Liaison","C. Resource Allocator","D. Disturbance Handler"],a:1,e:"Liaison is an interpersonal role. Decisional roles are: Entrepreneur, Disturbance Handler, Resource Allocator, Negotiator.",t:"Management",d:"medium"},
+  {q:"Most critical skill for top-level managers according to Katz:",o:["A. Technical skills","B. Human skills","C. Conceptual skills","D. Operational skills"],a:2,e:"Katz: Conceptual skills (abstract/strategic thinking) are most important for top managers. Technical skills are most important for first-line managers.",t:"Management",d:"medium"},
+  {q:"Which is NOT a characteristic of an Organisation?",o:["A. Identifiable boundary","B. Socially designed unit","C. A single individual working independently","D. Deliberately coordinated activities"],a:2,e:"Organisations require multiple people working together with deliberate coordination, boundaries, and environmental linkage. A solo individual is not an organisation.",t:"Management",d:"medium"},
+  {q:"A hospital CEO making organisation-wide decisions holds which position?",o:["A. First-Line Manager","B. Non-managerial employee","C. Top Manager","D. Middle Manager"],a:2,e:"Top managers (CEO, MD, COO) are responsible for organisation-wide decisions and setting goals affecting the entire organisation.",t:"Management",d:"easy"},
+  {q:"Sustainability in management integrates which three dimensions?",o:["A. Profitability, market share, brand recognition","B. Economic, environmental, and social opportunities","C. Financial, operational, HR metrics","D. Local, national, international markets"],a:1,e:"Sustainability = integrating economic (financial viability), environmental (ecological responsibility), and social (community impact) considerations to increase long-term value.",t:"Management",d:"medium"},
+  {q:"Which management role is a pharmacy director performing when negotiating a supplier contract?",o:["A. Figurehead","B. Monitor","C. Negotiator","D. Disseminator"],a:2,e:"Negotiating contracts = Decisional role. Mintzberg's Negotiator represents the organisation in major negotiations and commits organisational resources.",t:"Management",d:"hard"},
+  {q:"Digitisation's most direct impact on managers' jobs is:",o:["A. Increased face-to-face communication and physical meetings","B. Virtual workplaces, mobile workforces, and flexible work arrangements","C. Decreased need for innovation","D. Reduced ethics requirements"],a:1,e:"Digitisation creates virtual/remote work, mobile workforces, flexible arrangements, empowered employees, and work-life balance challenges.",t:"Management",d:"medium"},
+  {q:"An elderly patient is at higher ADR risk due to PK changes. Which factors are responsible?",o:["A. Faster gastric emptying and higher renal CL","B. Reduced renal/hepatic function, decreased albumin, increased Vd for lipophilic drugs, polypharmacy","C. Increased GI absorption","D. Higher body water content → lower drug concentrations"],a:1,e:"Ageing: ↓ renal/hepatic CL → longer t½, ↓ albumin → more free drug, ↑ body fat → higher Vd for lipophilic drugs, polypharmacy → interactions.",t:"Pharmacokinetics",d:"hard"},
+
+  // ── NEW LMIS QUESTIONS ─────────────────────────────────────────
+  {q:"What is the minimum data required to calculate how much stock to order at a health facility?",o:["A. Stock on hand only","B. Stock on hand and rate of consumption","C. Losses and patient diagnosis records","D. Waybill and delivery notes only"],a:1,e:"To calculate an order quantity you need: Stock on Hand (what you have) and Rate of Consumption (how fast you use it). These two together determine how much to order.",t:"LMIS",d:"easy"},
+  {q:"A facility has 200 units of amoxicillin, uses 50 per month, and orders every 2 months. What is the maximum stock level if the safety stock is 1 month's supply?",o:["A. 100 units","B. 150 units","C. 200 units","D. 250 units"],a:1,e:"Max level = (Order interval + Lead time + Safety stock) × AMC. Here: (2 + 0 + 1) × 50 = 150 units. Safety stock acts as a buffer against stockouts.",t:"LMIS",d:"hard"},
+  {q:"Which of the following best describes a 'stockout'?",o:["A. When stock is above the maximum level","B. When a commodity is completely unavailable at a facility when needed","C. When expired stock is found during a physical count","D. When a facility receives more stock than ordered"],a:1,e:"A stockout occurs when a commodity is unavailable at the point it is needed. Stockouts directly disrupt service delivery and patient care.",t:"LMIS",d:"easy"},
+  {q:"The 'pipeline' in supply chain management refers to:",o:["A. The physical pipes used to deliver IV fluids","B. All stock in the system — in storage, in transit, and on order","C. Only stock currently sitting in the central medical stores","D. The reporting pathway from facility to national level"],a:1,e:"The pipeline includes all stock at every level of the system — warehoused, in transit, and on order. Pipeline monitoring ensures there are no gaps in supply.",t:"LMIS",d:"medium"},
+  {q:"Which LMIS form in Ghana is specifically used to document the physical movement of goods between stores?",o:["A. Bin Card","B. Stores Ledger","C. Waybill","D. Loss Form A"],a:2,e:"A Waybill (also called a delivery note) accompanies goods during physical transit between stores, documenting what is being moved, quantities, and confirming receipt.",t:"LMIS",d:"medium"},
+  {q:"A health facility reports 500 condoms dispensed in January, 600 in February, and 400 in March. What is the average monthly consumption (AMC)?",o:["A. 400","B. 450","C. 500","D. 600"],a:2,e:"AMC = (500 + 600 + 400) / 3 = 1500 / 3 = 500 units per month. AMC smooths out monthly variation and is used to set reorder points.",t:"LMIS",d:"medium"},
+  {q:"What is the purpose of setting a 'maximum stock level' in inventory management?",o:["A. To ensure facilities never run out of stock","B. To prevent overstocking and reduce waste from expiry","C. To determine the reorder point only","D. To set the safety stock level"],a:1,e:"Maximum stock levels prevent overstocking, which wastes storage space, ties up funds, and increases expiry risk. Together with minimum levels they define the ordering range.",t:"LMIS",d:"medium"},
+  {q:"In LMIS, 'losses' specifically refers to:",o:["A. Any reduction in stock including dispensing to patients","B. Commodities removed from distribution for reasons other than dispensing — expiry, damage, theft","C. Stock transferred to another facility at the same level","D. Quantities ordered but not yet received"],a:1,e:"Losses are distinct from consumption. They represent waste in the system — stock removed for reasons other than serving clients, such as expiry, damage, or pilferage.",t:"LMIS",d:"easy"},
+  {q:"Which level of Ghana's health system is responsible for distributing to Regional Medical Stores?",o:["A. District Health Directorate","B. Community-Based Distribution Agents","C. Central Medical Stores (CMS)","D. Health facilities"],a:2,e:"CMS (Central Medical Stores) is the national-level store that receives commodities and distributes downward to RMS (Regional Medical Stores) across Ghana's regions.",t:"LMIS",d:"medium"},
+  {q:"A 'pull' distribution system means:",o:["A. The central level pushes stock down to facilities based on its own estimates","B. Facilities request (pull) stock based on their own consumption data","C. Stock is pulled from expired inventory and destroyed","D. The district pulls data from facilities without their input"],a:1,e:"In a pull system, lower-level facilities request stock based on their actual consumption data. This is more responsive than a push system and reduces overstocking.",t:"LMIS",d:"hard"},
+  {q:"What does 'EOP' stand for in the Ghana LMIS Worksheet?",o:["A. End of Period","B. Emergency Order Point","C. Expected Order Projection","D. End of Pipeline"],a:0,e:"EOP = End of Period stock. The worksheet for Setting Max/Reorder Levels uses EOP to calculate how much stock will remain at the end of a reporting period, guiding order quantities.",t:"LMIS",d:"hard"},
+  {q:"The purpose of a physical inventory count in a health facility is to:",o:["A. Replace the bin card permanently","B. Verify that physical stock matches recorded stock on hand","C. Count patients served during a quarter","D. Determine the national procurement quantity"],a:1,e:"Physical counts verify that actual stock matches records. Discrepancies reveal losses, counting errors, or recording mistakes that must be reconciled as adjustments.",t:"LMIS",d:"easy"},
+  {q:"Which statement about LMIS reporting frequency in Ghana is most accurate?",o:["A. All facilities report daily regardless of commodity","B. Reporting frequency varies by commodity and programme — monthly, bi-monthly, or quarterly","C. Only national-level facilities submit reports","D. Facilities only report when there is a stockout"],a:1,e:"Ghana's LMIS reporting frequency varies: some programmes (e.g. family planning) use monthly reporting; others use bi-monthly or quarterly cycles depending on the commodity and programme.",t:"LMIS",d:"medium"},
+  {q:"What is the key difference between 'issues' and 'receipts' in a transaction record?",o:["A. Issues are recorded on bin cards; receipts are not","B. Issues = stock leaving a facility; receipts = stock arriving at a facility","C. Receipts are only recorded at CMS level","D. There is no difference — both refer to the same transaction"],a:1,e:"Issues record stock leaving (going out to lower levels or patients). Receipts record stock arriving (coming in from higher levels). Both are captured on transaction records like the RIRV.",t:"LMIS",d:"easy"},
+  {q:"A District Health Directorate discovers that 3 out of 10 facilities did not submit their monthly LMIS reports. This affects which of the Six Rights?",o:["A. Right Quantity","B. Right Cost","C. Right Time and Right Information","D. Right Place"],a:2,e:"Missing reports violate the Right Time (reports not submitted on schedule) and Right Information (decision-makers lack complete data). Incomplete reporting undermines the entire logistics system.",t:"LMIS",d:"medium"},
+
+  // ── NEW PHARMACOKINETICS QUESTIONS ────────────────────────────
+  {q:"What does ADME stand for?",o:["A. Absorption, Distribution, Metabolism, Excretion","B. Administration, Dosing, Monitoring, Elimination","C. Affinity, Distribution, Metabolism, Efficacy","D. Absorption, Dosing, Metabolism, Evaluation"],a:0,e:"ADME describes the four pharmacokinetic processes: Absorption (drug enters body), Distribution (drug moves to tissues), Metabolism (drug is chemically altered), Excretion (drug leaves body).",t:"Pharmacokinetics",d:"easy"},
+  {q:"Which organ is primarily responsible for drug metabolism?",o:["A. Kidney","B. Lung","C. Liver","D. Small intestine"],a:2,e:"The liver is the primary site of drug metabolism, containing high concentrations of CYP450 enzymes, glucuronyl transferases, and other phase I and II metabolising enzymes.",t:"Pharmacokinetics",d:"easy"},
+  {q:"Phase I drug metabolism reactions include:",o:["A. Glucuronidation and sulfation","B. Oxidation, reduction, and hydrolysis","C. Acetylation and methylation","D. Conjugation with glutathione only"],a:1,e:"Phase I reactions introduce or unmask a functional group (oxidation, reduction, hydrolysis) — primarily via CYP450 enzymes. Phase II reactions are conjugation reactions (glucuronidation, sulfation, acetylation).",t:"Pharmacokinetics",d:"medium"},
+  {q:"A drug with a narrow therapeutic index means:",o:["A. It has a wide margin between effective and toxic doses","B. There is little difference between the therapeutic and toxic plasma concentrations","C. It is only effective in a narrow range of patient ages","D. It can only be given once daily"],a:1,e:"Narrow therapeutic index (NTI) drugs (e.g. warfarin, digoxin, phenytoin, lithium) have small differences between effective and toxic concentrations, requiring careful monitoring.",t:"Pharmacokinetics",d:"easy"},
+  {q:"Drug X has Vd = 0.05 L/kg. This suggests the drug:",o:["A. Is extensively distributed into fat tissue","B. Is mainly confined to the plasma compartment","C. Crosses the blood-brain barrier easily","D. Has high intracellular accumulation"],a:1,e:"Vd of 0.05 L/kg is much less than plasma volume (~0.04–0.07 L/kg), suggesting the drug stays largely in plasma — likely due to high protein binding or being highly polar/ionised.",t:"Pharmacokinetics",d:"medium"},
+  {q:"Which of the following will INCREASE drug absorption from the GI tract?",o:["A. High ionisation at gastric pH","B. Large molecular weight","C. High lipophilicity and small molecular size","D. Food that delays gastric emptying for all drugs"],a:2,e:"Lipophilic, small molecules cross gut membranes by passive diffusion more easily. Ionised, large, or polar molecules are poorly absorbed.",t:"Pharmacokinetics",d:"medium"},
+  {q:"Creatinine clearance (CrCl) is used in pharmacy to:",o:["A. Measure liver enzyme activity","B. Estimate renal function and guide dose adjustment of renally cleared drugs","C. Calculate the loading dose for all drugs","D. Determine drug protein binding"],a:1,e:"CrCl estimates glomerular filtration rate (GFR) and is used to adjust doses of renally eliminated drugs (e.g. gentamicin, vancomycin, metformin) to avoid toxicity in renal impairment.",t:"Pharmacokinetics",d:"easy"},
+  {q:"The Cockcroft-Gault equation estimates:",o:["A. Hepatic clearance","B. Volume of distribution","C. Creatinine clearance as a surrogate for GFR","D. Drug protein binding percentage"],a:2,e:"Cockcroft-Gault: CrCl = [(140-age) × weight] / (72 × SCr) × 0.85 for females. It estimates GFR from serum creatinine and is widely used for drug dosing in renal impairment.",t:"Pharmacokinetics",d:"medium"},
+  {q:"Which statement about protein binding is correct?",o:["A. Bound drug is pharmacologically active","B. Only unbound (free) drug crosses membranes and produces effects","C. Protein binding has no effect on drug distribution","D. All drugs bind equally to albumin"],a:1,e:"Only free (unbound) drug can cross membranes, bind receptors, and be metabolised or excreted. Bound drug acts as a reservoir. Hypoalbuminaemia (e.g. in liver disease) increases free drug fraction.",t:"Pharmacokinetics",d:"easy"},
+  {q:"A patient taking phenytoin (highly protein bound) is prescribed valproate which displaces phenytoin from albumin. The immediate effect is:",o:["A. Decreased total phenytoin but increased free phenytoin → toxicity risk","B. Increased total phenytoin","C. No change — protein binding displacement is clinically insignificant","D. Decreased free phenytoin → reduced efficacy"],a:0,e:"Displacement increases free drug transiently. Total phenytoin level may fall (more free drug available for distribution/metabolism) but free levels rise — phenytoin toxicity can occur despite 'normal' total levels.",t:"Pharmacokinetics",d:"hard"},
+  {q:"What is 'enterohepatic recirculation'?",o:["A. Drug absorbed from the gut going directly to the kidney","B. Drug excreted in bile into the intestine, reabsorbed, and returned to circulation — prolonging drug action","C. First-pass metabolism occurring twice","D. Metabolism of a drug by gut bacteria only"],a:1,e:"Some drugs (e.g. oral contraceptives, morphine) are excreted in bile as conjugates, hydrolysed by gut bacteria, reabsorbed, and returned to circulation. This extends t½ and duration of action.",t:"Pharmacokinetics",d:"hard"},
+  {q:"Therapeutic Drug Monitoring (TDM) is most useful for drugs that:",o:["A. Have wide therapeutic indices and predictable responses","B. Have narrow therapeutic indices, variable pharmacokinetics, or concentration-related toxicity","C. Are eliminated entirely by the kidney without metabolism","D. Are only given as single doses"],a:1,e:"TDM is used for NTI drugs where small concentration changes cause toxicity or failure: aminoglycosides, vancomycin, phenytoin, lithium, cyclosporin, digoxin.",t:"Pharmacokinetics",d:"medium"},
+  {q:"A drug is described as having 'linear pharmacokinetics'. This means:",o:["A. AUC increases proportionally with dose","B. The drug follows zero-order elimination","C. Clearance increases as dose increases","D. The drug cannot be given IV"],a:0,e:"Linear (first-order) PK: doubling the dose doubles AUC and Css. This predictable behaviour makes dosing straightforward. Non-linear (saturable) drugs like phenytoin do not follow this pattern.",t:"Pharmacokinetics",d:"medium"},
+  {q:"Bioequivalence between two drug formulations means:",o:["A. They have identical chemical structures","B. They produce the same plasma concentration-time profile (same AUC, Cmax, and Tmax) within accepted limits","C. They have the same colour, shape, and size","D. They are manufactured by the same company"],a:1,e:"Bioequivalence (BE) means two formulations deliver the same amount of drug to systemic circulation at the same rate. BE studies are the basis for generic drug approval.",t:"Pharmacokinetics",d:"medium"},
+  {q:"Which cytochrome P450 enzyme is responsible for metabolising the largest number of drugs (approximately 50%)?",o:["A. CYP1A2","B. CYP2D6","C. CYP3A4","D. CYP2C9"],a:2,e:"CYP3A4 is the most abundant hepatic and intestinal CYP enzyme and metabolises ~50% of all drugs. It is inhibited by grapefruit, ketoconazole, erythromycin and induced by rifampicin, carbamazepine, St. John's Wort.",t:"Pharmacokinetics",d:"medium"},
+  {q:"A patient is a 'poor metaboliser' of CYP2D6. They are prescribed codeine. What is the expected outcome?",o:["A. Increased conversion of codeine to morphine → increased analgesia and toxicity","B. Reduced conversion of codeine to morphine → reduced analgesia","C. No effect — CYP2D6 does not metabolise codeine","D. Increased renal excretion of codeine"],a:1,e:"Codeine is a prodrug activated to morphine by CYP2D6. Poor metabolisers (PMs) convert little codeine → reduced analgesia. Ultra-rapid metabolisers (UMs) convert too much → morphine toxicity.",t:"Pharmacokinetics",d:"hard"},
+  {q:"The 'flip-flop' pharmacokinetic model occurs when:",o:["A. A drug flips between first and zero-order kinetics","B. The absorption rate is slower than the elimination rate, so t½ reflects absorption not elimination","C. Two drugs compete for the same protein binding site","D. A drug distributes into a third compartment"],a:1,e:"Flip-flop occurs with sustained-release or depot formulations where absorption is rate-limiting. The observed t½ reflects the slow absorption phase, not true elimination half-life.",t:"Pharmacokinetics",d:"hard"},
+  {q:"Gentamicin is given once daily (extended interval dosing) rather than three times daily because:",o:["A. It has time-dependent killing requiring continuous exposure","B. It has concentration-dependent killing; high peaks maximise efficacy and long troughs reduce nephrotoxicity","C. It has zero-order kinetics and accumulates with frequent dosing","D. Once-daily dosing is cheaper and has nothing to do with PK/PD"],a:1,e:"Aminoglycosides show concentration-dependent killing (Cmax/MIC drives efficacy) and adaptive resistance. High peaks kill bacteria maximally; long troughs allow renal tubular cells to recover, reducing nephrotoxicity.",t:"Pharmacokinetics",d:"hard"},
+
+  // ── NEW CAM / REIKI QUESTIONS ─────────────────────────────────
+  {q:"Which of the following is considered a 'natural product' CAM therapy by NCCIH?",o:["A. Yoga","B. Meditation","C. Echinacea (herbal supplement)","D. Reiki"],a:2,e:"NCCIH classifies Natural Products as herbs, vitamins, minerals, and probiotics. Yoga and meditation are Mind-Body Practices. Reiki is classified under Other Complementary Health Approaches.",t:"CAM",d:"easy"},
+  {q:"A patient tells you they use 'homeopathy' for their arthritis. Homeopathy is based on:",o:["A. High doses of herbal medicines","B. The principle that 'like cures like' using highly diluted substances","C. Energy healing through touch","D. Traditional African plant medicines"],a:1,e:"Homeopathy is based on 'like cures like' and the law of infinitesimals — substances diluted to the point where no molecules remain are claimed to retain a 'memory' of the original substance. Evidence does not support efficacy.",t:"CAM",d:"medium"},
+  {q:"Which statement about Traditional African Medicine (TAM) is most accurate for a Ghanaian pharmacist?",o:["A. TAM has no interactions with conventional medicines","B. TAM is illegal in Ghana","C. Some traditional remedies have pharmacological activity and can interact with conventional drugs","D. TAM should always be recommended as first-line treatment"],a:2,e:"Many traditional plant medicines contain pharmacologically active compounds. They can inhibit or induce drug-metabolising enzymes and interact with conventional medicines. Pharmacists must screen for TAM use.",t:"CAM",d:"medium"},
+  {q:"A cancer patient wants to use high-dose Vitamin C infusions alongside chemotherapy. As a pharmacist, your primary concern is:",o:["A. Cost — IV Vitamin C is too expensive","B. Potential antioxidant interference with oxidative mechanism of some chemotherapy agents","C. Vitamin C has no known interactions","D. It should always be encouraged as evidence is strong"],a:1,e:"High-dose antioxidants (Vitamin C, Vitamin E) may theoretically interfere with pro-oxidant mechanisms of some chemotherapies (doxorubicin, bleomycin). Evidence is mixed but oncologists should be consulted.",t:"CAM",d:"hard"},
+  {q:"The placebo effect in CAM trials is important because:",o:["A. It proves CAM therapies are effective","B. It can account for perceived improvements without any active treatment, making it hard to distinguish true efficacy","C. Placebos are never used in CAM research","D. The placebo effect only occurs in children"],a:1,e:"Many CAM trials lack proper placebo controls. The placebo effect (improvement from belief in treatment) can be substantial — especially for subjective outcomes like pain, anxiety, and fatigue. Rigorous RCTs must control for this.",t:"CAM",d:"medium"},
+  {q:"Echinacea is commonly used for which condition?",o:["A. Hypertension","B. Type 2 diabetes","C. Upper respiratory tract infections and immune support","D. Osteoporosis"],a:2,e:"Echinacea is one of the most widely used herbal supplements, claimed to stimulate the immune system and reduce duration/severity of colds. Evidence is modest. It may interact with immunosuppressants.",t:"CAM",d:"easy"},
+  {q:"Which herbal medicine is most associated with hepatotoxicity?",o:["A. Ginger","B. Kava kava","C. Peppermint oil","D. Chamomile"],a:1,e:"Kava kava (used for anxiety) has been associated with severe hepatotoxicity including liver failure. It has been banned or restricted in several countries. Patients with liver disease should avoid it completely.",t:"CAM",d:"hard"},
+  {q:"Informed consent in CAM practice means:",o:["A. The patient agrees to stop all conventional medicine","B. The patient is told the evidence base, risks, benefits, and alternatives before deciding on CAM","C. The practitioner only needs verbal agreement","D. Consent is not required for natural therapies"],a:1,e:"Ethical CAM practice requires full informed consent: explaining what the therapy involves, the evidence base (including lack thereof), potential risks, interactions, and conventional alternatives.",t:"CAM",d:"medium"},
+  {q:"A patient on warfarin asks about taking garlic supplements for cardiovascular health. Your advice is:",o:["A. Garlic is natural so it is completely safe with warfarin","B. Garlic has antiplatelet and mild anticoagulant properties — it may increase bleeding risk and the INR should be monitored closely","C. Garlic supplements have no pharmacological activity","D. Immediately stop warfarin if starting garlic"],a:1,e:"Garlic inhibits platelet aggregation and may have mild anticoagulant effects. Combined with warfarin, it can increase bleeding risk. INR monitoring is essential; the prescriber should be informed.",t:"CAM",d:"medium"},
+  {q:"Valerian root is most commonly used for:",o:["A. Diabetes management","B. Sleep disorders and anxiety","C. Hypertension","D. Wound healing"],a:1,e:"Valerian is used as a mild sedative for insomnia and anxiety. It may enhance CNS depressant effects of benzodiazepines, alcohol, and other sedatives — an important drug interaction for pharmacists to screen.",t:"CAM",d:"easy"},
+
+  // ── NEW MANAGEMENT QUESTIONS ──────────────────────────────────
+  {q:"Henry Fayol's 14 Principles of Management include 'Unity of Command', which means:",o:["A. All managers must agree before any decision is made","B. Each employee should receive orders from only one superior","C. The organisation must have a single strategic goal","D. All departments must follow the same rules"],a:1,e:"Unity of Command (Fayol) states each employee should have only one direct superior to avoid conflicting instructions and confusion. It is a foundational principle of classical management theory.",t:"Management",d:"medium"},
+  {q:"Scientific Management, developed by Frederick Taylor, focuses on:",o:["A. Employee motivation and psychological needs","B. Finding the 'one best way' to perform a task through time and motion studies","C. Organisation-wide strategic planning","D. Group dynamics and team behaviour"],a:1,e:"Taylor's Scientific Management (early 1900s) aimed to improve efficiency by scientifically studying work tasks, standardising methods, selecting workers based on ability, and linking pay to performance.",t:"Management",d:"medium"},
+  {q:"Maslow's Hierarchy of Needs arranges human needs in which order (lowest to highest)?",o:["A. Social → Safety → Physiological → Esteem → Self-actualisation","B. Physiological → Safety → Social → Esteem → Self-actualisation","C. Safety → Physiological → Esteem → Social → Self-actualisation","D. Self-actualisation → Esteem → Social → Safety → Physiological"],a:1,e:"Maslow's hierarchy: Physiological (food, water) → Safety → Social/Belonging → Esteem → Self-actualisation. Lower needs must be reasonably satisfied before higher needs motivate behaviour.",t:"Management",d:"easy"},
+  {q:"A SWOT analysis in management examines:",o:["A. Staff, Workload, Operations, Training","B. Strengths, Weaknesses, Opportunities, Threats","C. Strategy, Workflow, Objectives, Targets","D. Systems, Wards, Outputs, Timelines"],a:1,e:"SWOT analysis is a strategic planning tool: Strengths and Weaknesses are internal factors; Opportunities and Threats are external. Used to guide organisational strategy.",t:"Management",d:"easy"},
+  {q:"Herzberg's Two-Factor Theory distinguishes between:",o:["A. Top managers and middle managers","B. Hygiene factors (prevent dissatisfaction) and motivators (drive satisfaction and performance)","C. Formal and informal organisational structures","D. Short-term and long-term planning"],a:1,e:"Herzberg: Hygiene factors (salary, working conditions, supervision) prevent dissatisfaction but don't motivate. Motivators (achievement, recognition, growth) actively drive job satisfaction and performance.",t:"Management",d:"medium"},
+  {q:"Which management theory views workers as naturally lazy and needing control (Theory X) versus self-motivated (Theory Y)?",o:["A. Fayol's Administrative Theory","B. Taylor's Scientific Management","C. McGregor's Theory X and Theory Y","D. Weber's Bureaucratic Theory"],a:2,e:"McGregor's Theory X assumes workers dislike work and need control. Theory Y assumes workers are self-motivated, seek responsibility, and can be creative. Management style should match reality.",t:"Management",d:"medium"},
+  {q:"Delegation in management means:",o:["A. A manager doing all tasks personally to ensure quality","B. Assigning responsibility and authority to subordinates to carry out tasks","C. Transferring a manager to another department","D. Removing a manager's authority"],a:1,e:"Delegation involves assigning tasks, authority, and responsibility to subordinates. Effective delegation develops staff, frees managers for strategic work, and builds organisational capability.",t:"Management",d:"easy"},
+  {q:"The 'span of control' in an organisation refers to:",o:["A. The geographic area a manager is responsible for","B. The number of subordinates a manager directly supervises","C. The range of products an organisation produces","D. The time span of a manager's strategic plan"],a:1,e:"Span of control = number of subordinates reporting directly to one manager. Narrow spans allow close supervision; wide spans reduce management layers but require highly capable staff.",t:"Management",d:"easy"},
+  {q:"A matrix organisational structure is characterised by:",o:["A. A single chain of command with one boss per employee","B. Employees reporting to both a functional manager and a project manager simultaneously","C. No formal hierarchy — all employees are equal","D. Only top managers making all decisions"],a:1,e:"Matrix structures combine functional (department-based) and project-based reporting. Employees have dual authority lines. Common in healthcare and complex projects — increases flexibility but can create confusion.",t:"Management",d:"medium"},
+  {q:"Corporate Social Responsibility (CSR) in a pharmacy context means:",o:["A. The pharmacy only focuses on profit maximisation","B. The pharmacy considers social, environmental, and ethical impacts alongside business goals","C. Pharmacists are socially responsible for prescribing errors only","D. CSR is only relevant to manufacturing companies"],a:1,e:"CSR means organisations act in ways that benefit society beyond legal requirements — e.g. community health education, ethical sourcing, environmental practices, and staff welfare.",t:"Management",d:"medium"},
+  {q:"A healthcare manager notices staff morale is low and absenteeism is rising. According to Herzberg, what should they address first?",o:["A. Give everyone a bonus immediately","B. Set ambitious new performance targets","C. Address hygiene factors — working conditions, supervision quality, and job security","D. Promote the highest performer immediately"],a:2,e:"Herzberg: Low morale and absenteeism suggest hygiene factors are inadequate. Before motivators can work, dissatisfiers (poor conditions, bad supervision, insecurity) must be resolved. A bonus may help short-term but won't sustain motivation.",t:"Management",d:"hard"},
+  {q:"Strategic planning differs from operational planning in that:",o:["A. Strategic planning is done daily; operational planning is done annually","B. Strategic planning is long-term and organisation-wide; operational planning is short-term and department-specific","C. Only first-line managers do strategic planning","D. Operational planning sets the mission; strategic planning sets the schedule"],a:1,e:"Strategic planning (top managers): long-term, broad, sets direction and goals. Operational planning (middle/first-line managers): short-term, specific, details how goals will be achieved day-to-day.",t:"Management",d:"medium"},
+  {q:"Bureaucratic management theory, associated with Max Weber, emphasises:",o:["A. Informal relationships and employee empowerment","B. Formal rules, hierarchy, division of labour, and impersonality","C. Democratic decision-making at all levels","D. Profit maximisation above all other goals"],a:1,e:"Weber's bureaucracy: clear hierarchy, written rules and procedures, division of labour, selection by merit, impersonal relationships. Designed to be rational, efficient, and predictable — though can become rigid.",t:"Management",d:"medium"},
+  {q:"Which of the following best describes 'organisational culture'?",o:["A. The physical layout of an organisation's offices","B. The shared values, beliefs, norms, and practices that shape behaviour in an organisation","C. The formal organisational chart","D. The financial performance of an organisation"],a:1,e:"Organisational culture is the invisible 'how we do things here' — shared assumptions, values, and norms. It influences employee behaviour, decision-making, customer service, and resistance to change.",t:"Management",d:"medium"},
+  {q:"A pharmacy manager who adjusts their management style based on the situation and the readiness of their team is practising:",o:["A. Autocratic leadership","B. Situational leadership","C. Laissez-faire leadership","D. Transactional leadership"],a:1,e:"Situational Leadership (Hersey & Blanchard): effective leaders adapt their style (directing, coaching, supporting, delegating) based on the task and the follower's competence and commitment level.",t:"Management",d:"hard"},
+
+  // ═══════════════════════════════════════════════════════════════
+  // 100 NEW QUESTIONS — 25 per subject, Easy / Medium / Hard mix
+  // ═══════════════════════════════════════════════════════════════
+
+  // ── LMIS × 25 ─────────────────────────────────────────────────
+  {q:"What is the main purpose of a Bin Card in a health facility store?",o:["A. To record patient prescriptions","B. To track stock movements — receipts, issues, and balance for a single commodity","C. To document staff attendance","D. To record financial transactions"],a:1,e:"A Bin Card is attached to the physical storage location of a commodity and records every receipt and issue, maintaining a running balance of stock on hand.",t:"LMIS",d:"easy"},
+  {q:"Which of the following is a characteristic of a GOOD logistics report?",o:["A. Submitted late but with accurate data","B. Timely, complete, accurate, and sent to the right level","C. Contains as much data as possible regardless of relevance","D. Only submitted when there is a stockout"],a:1,e:"A good LMIS report must satisfy the Six Rights: right information, right quantity, right condition (accurate), right time, right place, right cost. All are needed for good decision-making.",t:"LMIS",d:"easy"},
+  {q:"Commodities are being dispensed faster than they are being resupplied. This situation will most likely result in:",o:["A. Overstocking","B. A stockout","C. Increased losses","D. Higher maximum stock levels"],a:1,e:"When consumption outpaces resupply, stock on hand falls. If it reaches zero before the next resupply, a stockout occurs — meaning clients cannot be served.",t:"LMIS",d:"easy"},
+  {q:"What does 'lead time' mean in supply chain management?",o:["A. Time from order submission to delivery of goods","B. Time from goods delivery to patient dispensing","C. Time taken to complete a physical inventory count","D. The expiry period of a commodity"],a:0,e:"Lead time is the time between placing an order and receiving the goods. It must be factored into reorder calculations so facilities don't run out while waiting for resupply.",t:"LMIS",d:"easy"},
+  {q:"Which record would you use to track how many ORS sachets were dispensed to patients each day at an outpatient clinic?",o:["A. Bin Card","B. Waybill","C. Daily Activity Register (Consumption Record)","D. Stores Ledger"],a:2,e:"Consumption Records — like the Daily Activity Register — capture the quantity of each product dispensed to end users. This is the primary source of consumption data for LMIS.",t:"LMIS",d:"easy"},
+  {q:"Safety stock is held to:",o:["A. Reduce the maximum stock level","B. Protect against unexpected increases in demand or delays in resupply","C. Replace expired stock automatically","D. Fund emergency procurement"],a:1,e:"Safety (buffer) stock is extra stock kept as insurance against supply delays or consumption spikes. Without it, even a small disruption can cause a stockout.",t:"LMIS",d:"easy"},
+  {q:"A health facility has 300 artemether-lumefantrine tablets. Monthly consumption is 100 tablets. How many months of stock does the facility have?",o:["A. 1 month","B. 2 months","C. 3 months","D. 4 months"],a:2,e:"Months of Stock = Stock on Hand ÷ Average Monthly Consumption = 300 ÷ 100 = 3 months. This indicator tells managers how long current stock will last at current consumption rates.",t:"LMIS",d:"easy"},
+  {q:"In a 'push' distribution system, who decides how much stock each facility receives?",o:["A. The facility pharmacist based on their bin card","B. The central/higher level decides and pushes stock down without a facility request","C. The patient based on their prescription","D. An external NGO always decides"],a:1,e:"In a push system, a higher level (e.g. district or regional store) determines and delivers quantities to lower-level facilities based on estimates, not facility requests. Risk: over or under-supply.",t:"LMIS",d:"medium"},
+  {q:"A facility's bin card shows 150 units but a physical count shows 135 units. The discrepancy of 15 units should be recorded as:",o:["A. A loss of 15 units","B. A negative adjustment of 15 units","C. A consumption of 15 units","D. An issue to another facility"],a:1,e:"Discrepancies between recorded and physical stock that cannot be explained by theft or damage are recorded as negative adjustments. If pilferage is confirmed, it is recorded as a loss.",t:"LMIS",d:"medium"},
+  {q:"Which of the following best explains why data quality is critical in LMIS?",o:["A. Poor data quality only affects national-level reports","B. Decisions made from inaccurate data (e.g. ordering too much or too little) directly cause stockouts or wastage","C. Data quality only matters for financial audits","D. LMIS data quality is irrelevant if deliveries are on time"],a:1,e:"Every supply chain decision — ordering, distribution, procurement — depends on LMIS data. Inaccurate data leads to wrong quantities ordered, resulting in stockouts or overstocking and expiry.",t:"LMIS",d:"medium"},
+  {q:"The re-order level (ROL) in inventory management is calculated as:",o:["A. Maximum stock level minus safety stock","B. Average monthly consumption × (lead time + safety stock period)","C. Stock on hand minus losses","D. Maximum stock level divided by 2"],a:1,e:"ROL = AMC × (lead time + safety stock period in months). When stock falls to the ROL, an order must be placed so it arrives before safety stock is depleted.",t:"LMIS",d:"medium"},
+  {q:"Which type of report would a District Health Directorate use to inform a health facility that it has reported only 60% of the time over the last quarter?",o:["A. Consumption Report","B. Transaction Record","C. Feedback Report","D. Loss Form"],a:2,e:"Feedback Reports are sent from higher to lower levels to inform facilities of their performance, including reporting timeliness and completeness. They motivate improvement.",t:"LMIS",d:"medium"},
+  {q:"Cold chain management is most relevant to which category of health commodities in Ghana?",o:["A. Oral rehydration salts","B. Vaccines and temperature-sensitive medicines","C. Surgical gloves","D. Family planning pills"],a:1,e:"Vaccines and certain biologics require continuous refrigeration (2–8°C) from manufacture to administration — the 'cold chain'. Breaks in the cold chain render vaccines ineffective.",t:"LMIS",d:"medium"},
+  {q:"A pharmacist reviewing LMIS data notices consumption of malaria medicines doubles every December–January. The BEST response is:",o:["A. Ignore it — seasonal variation is normal","B. Adjust the safety stock and maximum stock levels upward before the peak season","C. Report the facility for data inaccuracy","D. Reduce the order quantity to save costs"],a:1,e:"Seasonal disease patterns (e.g. malaria in rainy season) require proactive adjustments to inventory levels. AMC should be recalculated seasonally, and safety stock increased ahead of peak periods.",t:"LMIS",d:"medium"},
+  {q:"What does 'supply chain visibility' mean?",o:["A. Transparency in financial reporting only","B. The ability to track stock status and movement at every level of the supply chain in real time","C. How many facilities a district can physically visit","D. The colour coding used on commodity labels"],a:1,e:"Supply chain visibility means knowing where stock is at every point — in storage, in transit, at service delivery points. Better visibility enables faster detection of stockouts, overstocks, and diversion.",t:"LMIS",d:"medium"},
+  {q:"A district store has 5,000 condoms. Monthly consumption across all facilities is 2,500. The maximum stock level is 3 months. Is the store overstocked?",o:["A. No — 2 months of stock is within normal range","B. Yes — 2 months of stock exceeds the maximum","C. No — the maximum level has not been reached","D. Yes — any stock above safety stock is overstock"],a:0,e:"Months of Stock = 5,000 ÷ 2,500 = 2 months. If maximum stock level is 3 months, then 2 months is below the maximum — not overstocked. Stock is within the acceptable range.",t:"LMIS",d:"medium"},
+  {q:"Which of the following is an example of a LMIS indicator used to monitor supply chain performance?",o:["A. Number of patients receiving treatment","B. Stock-out rate (% of facilities experiencing stockouts in a period)","C. Number of prescriptions written","D. Total hospital bed occupancy"],a:1,e:"Logistics performance indicators include: stockout rate, reporting rate, stock accuracy rate, and months of stock on hand. These measure supply chain health, not clinical outcomes.",t:"LMIS",d:"hard"},
+  {q:"A health facility consistently over-reports consumption to receive more stock than needed. This behaviour is called:",o:["A. Inventory optimisation","B. Consumption inflation or data falsification — a form of supply chain fraud","C. Safety stock building","D. Demand forecasting"],a:1,e:"Deliberately inflating consumption data to obtain excess stock is supply chain fraud. It distorts national procurement forecasts, wastes resources, and can lead to expiry of excess commodities.",t:"LMIS",d:"hard"},
+  {q:"In LMIS terminology, 'dispensed-to-user' data is preferred over 'issued-from-store' data because:",o:["A. It is easier to collect at warehouse level","B. It captures actual patient demand — not just stock transfers between stores","C. It does not require any recording forms","D. It includes losses and adjustments automatically"],a:1,e:"Dispensed-to-user data captures actual consumption at the point of service. Issued-from-store data may include stock that was transferred, stored, or wasted — not truly consumed by patients.",t:"LMIS",d:"hard"},
+  {q:"An LMIS assessment finds that facilities report on time but data is often inaccurate. Which intervention is MOST appropriate?",o:["A. Reduce the reporting frequency","B. Introduce financial penalties for late reporting","C. Strengthen staff training on data recording and conduct regular data quality audits","D. Switch entirely to a paper-free system immediately"],a:2,e:"Timely but inaccurate reporting indicates a training and supervision gap — staff know they must report but lack skills to record data correctly. Training and audits address the root cause.",t:"LMIS",d:"hard"},
+  {q:"The 'consumption-based' forecasting method for national procurement uses:",o:["A. Population census data only","B. Historical dispensed-to-user data adjusted for stockouts and coverage changes","C. Manufacturing capacity of suppliers","D. The previous year's procurement quantity without adjustment"],a:1,e:"Consumption-based forecasting uses actual dispensed-to-user data, adjusted for stockouts (which suppressed true demand) and changes in service coverage. More accurate than morbidity-based methods when good data exist.",t:"LMIS",d:"hard"},
+  {q:"Under Ghana's LMIS, Loss Form B is most likely used for:",o:["A. Recording inter-facility transfers","B. Documenting losses due to expiry of medicines","C. Capturing daily consumption at CBD agent level","D. Reporting financial losses to the Ministry of Finance"],a:1,e:"Ghana's Loss Forms A, B, and C categorise different types of losses. Loss Form B specifically documents losses due to expiry. All losses must be recorded and investigated to improve supply chain efficiency.",t:"LMIS",d:"hard"},
+  {q:"A supply chain manager wants to reduce the order-to-delivery cycle from 6 weeks to 3 weeks. The PRIMARY benefit of achieving this is:",o:["A. Increased maximum stock levels at all facilities","B. Reduced safety stock requirements and lower inventory holding costs","C. Elimination of all stockouts permanently","D. Reduced need for any LMIS data collection"],a:1,e:"Shorter lead times reduce the amount of safety stock needed (safety stock covers supply disruption risk). Lower safety stock means less capital tied up, less storage space, and less expiry risk.",t:"LMIS",d:"hard"},
+  {q:"When a facility's stock on hand falls below the minimum stock level, what action should be taken?",o:["A. Wait until the next scheduled order cycle","B. Immediately place an emergency order or request stock from a nearby facility","C. Stop dispensing to conserve remaining stock","D. Record the event and take no action"],a:1,e:"Stock falling below minimum level signals imminent stockout risk. An emergency order or lateral transfer from a nearby facility should be initiated immediately to protect service delivery.",t:"LMIS",d:"medium"},
+  {q:"Why is it important to record the batch number and expiry date on a Bin Card?",o:["A. It is required by the Ministry of Finance for budget purposes","B. It enables FEFO (First Expiry First Out) management to reduce wastage from expiry","C. Batch numbers are needed to calculate consumption rates","D. Expiry dates are recorded only on the stores ledger, not the bin card"],a:1,e:"Recording batch numbers and expiry dates on Bin Cards supports FEFO — ensuring stock that expires soonest is dispensed first. This minimises losses from expired commodities.",t:"LMIS",d:"medium"},
+
+  // ── PHARMACOKINETICS × 25 ─────────────────────────────────────
+  {q:"The term 'pharmacodynamics' refers to:",o:["A. What the body does to the drug","B. What the drug does to the body — mechanism of action and effects","C. The rate of drug absorption","D. The process of drug excretion"],a:1,e:"Pharmacokinetics = what the body does to the drug (ADME). Pharmacodynamics = what the drug does to the body (receptor binding, mechanism, effect, concentration-response relationship).",t:"Pharmacokinetics",d:"easy"},
+  {q:"Which of the following statements about intramuscular (IM) drug administration is correct?",o:["A. Bioavailability is always 100% for IM drugs","B. IM absorption depends on blood flow to the muscle and drug formulation","C. IM drugs bypass the liver completely, eliminating first-pass metabolism","D. IM administration is faster than IV in all cases"],a:1,e:"IM bioavailability is generally high (80–100%) but depends on muscle blood flow, drug lipophilicity, and formulation. IM is slower than IV but faster than oral for most drugs.",t:"Pharmacokinetics",d:"easy"},
+  {q:"A drug's plasma concentration is measured at 8mg/L two hours after a 400mg oral dose. If Vd = 50L, how much drug is in the body?",o:["A. 400mg","B. 50mg","C. 400mg × 50L","D. 8mg/L × 50L = 400mg"],a:3,e:"Amount in body = Cp × Vd = 8mg/L × 50L = 400mg. Since the entire dose is still 'in the body' (none eliminated yet at this hypothetical time point), this confirms Vd = dose/Cp.",t:"Pharmacokinetics",d:"medium"},
+  {q:"Which of the following drugs is primarily excreted UNCHANGED by the kidneys?",o:["A. Warfarin","B. Amoxicillin","C. Codeine","D. Propranolol"],a:1,e:"Amoxicillin is primarily renally excreted unchanged (>60%). Warfarin, codeine, and propranolol all undergo significant hepatic metabolism before excretion.",t:"Pharmacokinetics",d:"easy"},
+  {q:"The drug lithium (used for bipolar disorder) has a narrow therapeutic index. Its primary route of elimination is:",o:["A. Hepatic metabolism via CYP450","B. Renal excretion unchanged","C. Biliary excretion","D. Exhalation via the lungs"],a:1,e:"Lithium is excreted almost entirely unchanged by the kidneys and competes with sodium for reabsorption. Dehydration, sodium depletion, or NSAIDs reduce lithium excretion → toxicity risk.",t:"Pharmacokinetics",d:"medium"},
+  {q:"A patient's CrCl drops from 90 to 30 mL/min. For a drug that is 80% renally excreted unchanged, the dose should be:",o:["A. Kept the same","B. Doubled","C. Reduced significantly or dosing interval extended","D. Given only as an IV formulation"],a:2,e:"CrCl dropped by ~67%. For a renally cleared drug, clearance falls proportionally → t½ triples → drug accumulates. Dose reduction or interval extension is essential to prevent toxicity.",t:"Pharmacokinetics",d:"medium"},
+  {q:"Which statement about sublingual drug administration is correct?",o:["A. It undergoes extensive first-pass metabolism","B. It bypasses first-pass metabolism — drug absorbs directly into systemic circulation via oral mucosa","C. It has the same bioavailability as an oral tablet","D. It requires gastric acid for absorption"],a:1,e:"Sublingual drugs (e.g. GTN, buprenorphine) absorb directly through the oral mucosa into the jugular vein, bypassing the portal circulation and avoiding first-pass metabolism — rapid onset.",t:"Pharmacokinetics",d:"easy"},
+  {q:"A patient is started on theophylline (narrow TI) and then given ciprofloxacin (CYP1A2 inhibitor). The expected outcome is:",o:["A. Decreased theophylline levels — increased dose needed","B. Increased theophylline levels — toxicity risk (nausea, arrhythmia, seizures)","C. No interaction — theophylline is not metabolised by CYP1A2","D. Faster theophylline elimination due to enzyme induction"],a:1,e:"Theophylline is metabolised by CYP1A2. Ciprofloxacin is a CYP1A2 inhibitor → reduced theophylline metabolism → accumulation → toxicity (arrhythmias, seizures). Dose reduction needed.",t:"Pharmacokinetics",d:"hard"},
+  {q:"What is a 'prodrug'?",o:["A. A drug that requires no metabolism to be active","B. An inactive compound that is converted to its active form in the body","C. A drug manufactured before clinical trials","D. A prototype molecule used in drug discovery only"],a:1,e:"Prodrugs are pharmacologically inactive until metabolised to an active form. Examples: codeine → morphine (CYP2D6), enalapril → enalaprilat (esterases), clopidogrel → active thiol (CYP2C19).",t:"Pharmacokinetics",d:"medium"},
+  {q:"Which parameter best predicts the risk of drug accumulation with repeated dosing?",o:["A. Cmax after first dose","B. Half-life (t½) relative to dosing interval","C. Rate of absorption (Ka)","D. Protein binding percentage"],a:1,e:"If t½ >> dosing interval, drug accumulates significantly between doses. If t½ << dosing interval, little accumulation occurs. The accumulation ratio = 1/(1-e^(-0.693×τ/t½)).",t:"Pharmacokinetics",d:"medium"},
+  {q:"The antibiotic amoxicillin kills bacteria most effectively when:",o:["A. Peak concentration exceeds 10× MIC","B. Free drug concentration exceeds MIC for >40–50% of the dosing interval (time-dependent killing)","C. AUC/MIC ratio exceeds 125","D. A single large dose is given once weekly"],a:1,e:"Beta-lactams (penicillins, cephalosporins) show time-dependent killing. Efficacy depends on how long free drug remains above MIC — not peak concentration. This is why they are often dosed frequently.",t:"Pharmacokinetics",d:"hard"},
+  {q:"Which of the following correctly describes the difference between drug tolerance and drug dependence?",o:["A. They are the same phenomenon","B. Tolerance = reduced effect with repeated dosing; Dependence = physiological/psychological need for the drug","C. Tolerance only occurs with illegal drugs","D. Dependence means the drug no longer works at any dose"],a:1,e:"Tolerance: reduced pharmacological effect with repeated dosing (receptor downregulation, enzyme induction). Dependence: physical or psychological need — withdrawal symptoms occur on stopping.",t:"Pharmacokinetics",d:"medium"},
+  {q:"Urine alkalinisation (e.g. with sodium bicarbonate) is used to increase excretion of:",o:["A. Basic drugs like amphetamines","B. Acidic drugs like salicylates (aspirin overdose)","C. Neutral lipophilic drugs","D. Protein-bound drugs"],a:1,e:"Alkaline urine ionises weak acids (like salicylate, pKa ~3) → ionised drug cannot be reabsorbed → trapped in urine and excreted. Used in aspirin overdose. Acidification traps weak bases.",t:"Pharmacokinetics",d:"hard"},
+  {q:"A drug has 95% protein binding. A second drug displaces it, reducing binding to 90%. The free fraction changes from:",o:["A. 5% to 10% — a doubling of free drug","B. 95% to 90%","C. No clinically significant change","D. 5% to 15%"],a:0,e:"Free fraction goes from 5% to 10% — a 100% increase in free drug. Even a small reduction in protein binding percentage causes a large relative increase in free (active) drug. Clinically significant for NTI drugs.",t:"Pharmacokinetics",d:"hard"},
+  {q:"Chloroquine has an extremely large Vd (~200–800 L/kg). This means:",o:["A. It stays mainly in plasma","B. It distributes extensively into tissues — plasma levels are very low relative to tissue levels","C. It cannot cross cell membranes","D. It is rapidly eliminated by the kidneys"],a:1,e:"Extremely large Vd indicates extensive tissue binding. Chloroquine concentrates in lysosomes, red blood cells, and retinal pigment. Plasma levels are tiny relative to total body drug — making it difficult to remove by dialysis.",t:"Pharmacokinetics",d:"hard"},
+  {q:"What is the 'therapeutic window'?",o:["A. The time of day when a drug should be taken","B. The range of plasma concentrations between minimum effective concentration (MEC) and minimum toxic concentration (MTC)","C. The number of doses before a drug becomes effective","D. The shelf life of a drug product"],a:1,e:"Therapeutic window = concentrations between MEC (below = no effect) and MTC (above = toxicity). NTI drugs have a narrow window; wide TI drugs have a large window allowing more dosing flexibility.",t:"Pharmacokinetics",d:"easy"},
+  {q:"Dialysis can remove a drug effectively when the drug:",o:["A. Has a large Vd and high protein binding","B. Has a small Vd, low protein binding, and is water-soluble","C. Is highly lipophilic","D. Has zero-order kinetics"],a:1,e:"Dialysis works on free drug in plasma. A small Vd means most drug is in plasma (available for dialysis); low protein binding means more free drug; water-solubility allows diffusion across the dialysis membrane.",t:"Pharmacokinetics",d:"hard"},
+  {q:"The Henderson-Hasselbalch equation is used in PK to predict:",o:["A. Drug clearance in renal impairment","B. The degree of ionisation of a drug at a given pH — affecting absorption and distribution","C. The rate of hepatic metabolism","D. The elimination half-life"],a:1,e:"Henderson-Hasselbalch: pH = pKa + log([A-]/[HA]). It predicts what fraction of a weak acid/base is ionised at a given pH. Ionised drug is less membrane-permeable, affecting GI absorption and renal excretion.",t:"Pharmacokinetics",d:"hard"},
+  {q:"An oral controlled-release (CR) formulation is designed to:",o:["A. Achieve higher peak concentrations than immediate-release","B. Release drug slowly to maintain consistent plasma levels and reduce dosing frequency","C. Increase first-pass metabolism","D. Bypass absorption entirely"],a:1,e:"CR formulations release drug slowly → sustained, smoother plasma concentrations → fewer peaks and troughs → reduced toxicity, less frequent dosing, and improved adherence.",t:"Pharmacokinetics",d:"easy"},
+  {q:"A drug with pH-dependent absorption is best absorbed in acidic conditions. Which part of the GI tract is MOST likely to be the primary absorption site?",o:["A. Colon","B. Ileum","C. Stomach (for very lipophilic weak acids)","D. Rectum"],a:2,e:"Weak acids (e.g. aspirin, pKa 3.5) are un-ionised in stomach acid (pH 1–2) and can be absorbed there. However, most absorption still occurs in the small intestine due to its vast surface area.",t:"Pharmacokinetics",d:"medium"},
+  {q:"What is the significance of CYP2C19 poor metaboliser status for clopidogrel?",o:["A. Increased conversion to active thiol → bleeding risk","B. Reduced conversion to active thiol → reduced antiplatelet effect → increased cardiovascular events","C. No clinical significance — alternative pathways compensate","D. Faster renal clearance of clopidogrel"],a:1,e:"Clopidogrel is a prodrug requiring CYP2C19 for activation. PMs cannot activate clopidogrel adequately → stent thrombosis risk. Prasugrel or ticagrelor (not CYP2C19-dependent) should be considered.",t:"Pharmacokinetics",d:"hard"},
+  {q:"Digoxin has a Vd of ~7 L/kg and t½ of ~36 hours. In a patient with renal failure, what happens?",o:["A. Vd decreases and t½ shortens","B. Vd is unchanged but t½ is prolonged because digoxin is renally cleared","C. Digoxin is unaffected because it is hepatically metabolised","D. Protein binding increases, reducing free drug"],a:1,e:"Digoxin is ~70% renally excreted unchanged. In renal failure, CL falls → t½ increases from ~36 hrs to >100 hrs → accumulation → digoxin toxicity (bradycardia, arrhythmia, visual disturbance).",t:"Pharmacokinetics",d:"hard"},
+  {q:"The oral bioavailability of morphine is approximately 25–35%. This is primarily due to:",o:["A. Poor GI absorption","B. Extensive first-pass metabolism in the gut wall and liver","C. Rapid renal clearance before reaching systemic circulation","D. Strong protein binding reducing free drug levels"],a:1,e:"Morphine undergoes significant first-pass glucuronidation in the gut wall and liver, producing morphine-6-glucuronide (M6G, active) and morphine-3-glucuronide (M3G, inactive). Only 25–35% reaches systemic circulation.",t:"Pharmacokinetics",d:"medium"},
+  {q:"Which of the following is the BEST reason to measure trough (pre-dose) plasma concentration in TDM?",o:["A. Trough levels correlate with drug toxicity for all drugs","B. Trough is the lowest level — if above MTC, the patient is at sustained toxicity risk","C. Trough reflects steady-state average concentration and minimum efficacy level","D. Peak levels are impossible to measure accurately"],a:2,e:"Trough (Cmin) reflects the lowest plasma concentration in a dosing cycle — just before the next dose. It confirms the drug remains above minimum effective concentration and is used to assess accumulation/toxicity risk.",t:"Pharmacokinetics",d:"medium"},
+  {q:"Why does obesity affect drug dosing?",o:["A. Obese patients always need lower doses of all drugs","B. Increased body fat alters Vd for lipophilic drugs and total body weight affects clearance — dosing must be individualised","C. Obesity has no effect on pharmacokinetics","D. Renal clearance is always reduced in obese patients"],a:1,e:"Obesity increases adipose tissue → ↑ Vd for lipophilic drugs (e.g. diazepam, verapamil). Lean body weight is used for some drugs (digoxin, aminoglycosides); total body weight for others (heparin). Individualisation is key.",t:"Pharmacokinetics",d:"medium"},
+
+  // ── CAM / REIKI × 25 ──────────────────────────────────────────
+  {q:"Which of the following BEST describes 'integrative medicine'?",o:["A. Using only herbal medicines instead of conventional drugs","B. Combining evidence-based conventional medicine with CAM therapies in a coordinated approach","C. Treating only the physical symptoms of disease","D. A type of surgery that integrates multiple techniques"],a:1,e:"Integrative medicine combines conventional evidence-based medicine with CAM approaches that have some evidence of safety and effectiveness. It treats the whole person — body, mind, and spirit.",t:"CAM",d:"easy"},
+  {q:"How does Reiki differ from massage therapy?",o:["A. Reiki involves deep tissue manipulation; massage does not","B. Reiki practitioners may work with hands hovering above the body without physical contact; massage involves direct physical manipulation","C. Massage uses energy fields; Reiki does not","D. There is no difference — they are the same therapy"],a:1,e:"Reiki may involve light touch or hands held above the body to channel energy. Massage therapy involves physical manipulation of soft tissue. They are distinct therapies with different theoretical bases.",t:"CAM",d:"easy"},
+  {q:"A patient with insomnia asks about melatonin supplements. Which statement is most accurate?",o:["A. Melatonin is a prescription-only medicine with no evidence for insomnia","B. Melatonin has evidence for circadian rhythm disorders and jet lag; evidence for general insomnia is more modest","C. Melatonin has no side effects and can be taken in any dose","D. Melatonin is classified as a dangerous herb by WHO"],a:1,e:"Melatonin is well-evidenced for jet lag and circadian rhythm sleep disorders. Evidence for primary insomnia is more modest. It is generally safe short-term but long-term data are limited.",t:"CAM",d:"easy"},
+  {q:"Which of the following CAM therapies is based on the principle that inserting needles into specific points on the body restores energy flow?",o:["A. Homeopathy","B. Acupuncture","C. Naturopathy","D. Reflexology"],a:1,e:"Acupuncture is based on Traditional Chinese Medicine principles that Qi (life energy) flows through meridians. Inserting needles at specific points is claimed to restore Qi flow. Some evidence supports its use for pain and nausea.",t:"CAM",d:"easy"},
+  {q:"What is the primary regulatory concern with herbal medicines sold in Ghana?",o:["A. They are all too expensive","B. Many are not standardised, lack quality control, and may be adulterated or contaminated","C. They are all banned by the FDA Ghana","D. Herbal medicines are only sold by pharmacists in Ghana"],a:1,e:"Herbal medicines in Ghana and many LMICs lack standardisation — active ingredient content varies between batches and brands. Adulteration with conventional drugs (e.g. steroids in herbal creams) and heavy metal contamination are documented concerns.",t:"CAM",d:"medium"},
+  {q:"Warfarin's anticoagulant effect is INCREASED by which herbal supplement?",o:["A. Valerian","B. Ginger (high doses)","C. Chamomile","D. Peppermint"],a:1,e:"High-dose ginger has antiplatelet effects and may inhibit thromboxane synthesis. Combined with warfarin, it can increase bleeding risk. Patients on anticoagulants should inform their pharmacist before using ginger supplements.",t:"CAM",d:"medium"},
+  {q:"Which of the following statements about aromatherapy is correct?",o:["A. Inhaling essential oils directly treats bacterial infections","B. Aromatherapy may reduce anxiety and improve mood but evidence for treating medical conditions is weak","C. Essential oils are safe to ingest in any quantity","D. Aromatherapy is classified as an evidence-based medicine by WHO"],a:1,e:"Aromatherapy (inhaling or topically applying essential oils) may offer benefits for relaxation, anxiety, and mood. Evidence for treating medical conditions is insufficient. Essential oils can be toxic if ingested.",t:"CAM",d:"easy"},
+  {q:"The concept of 'qi' in Traditional Chinese Medicine is most similar to which concept in Reiki?",o:["A. The Western concept of ATP energy production","B. 'Ki' — universal life-force energy that flows through the body","C. The immune system's defence response","D. The autonomic nervous system's regulation"],a:1,e:"Both qi (TCM) and ki (Reiki) refer to a universal life-force energy that flows through the body. Disruption of this flow is believed to cause illness. Both are non-scientifically validated concepts.",t:"CAM",d:"easy"},
+  {q:"A systematic review of Reiki studies found methodological limitations including:",o:["A. Studies were all too large and expensive","B. Small sample sizes, lack of blinding, inadequate control groups, and high risk of bias","C. Reiki studies always used gold-standard double-blind RCT designs","D. No studies of Reiki have ever been published"],a:1,e:"The Reiki evidence base is characterised by small, poorly designed trials with high risk of bias. Without proper sham-Reiki controls and blinding, it is impossible to separate therapeutic effects from placebo.",t:"CAM",d:"medium"},
+  {q:"Black cohosh is most commonly used for:",o:["A. Diabetes management","B. Menopausal symptoms (hot flushes, night sweats)","C. Malaria prevention","D. Hypertension"],a:1,e:"Black cohosh is used for menopausal symptoms. Some evidence supports modest efficacy for hot flushes. Safety concerns include rare hepatotoxicity — patients with liver disease should avoid it.",t:"CAM",d:"medium"},
+  {q:"Which patient group requires EXTRA caution regarding CAM and herb-drug interactions?",o:["A. Healthy young adults on no medications","B. Transplant patients on immunosuppressants (e.g. cyclosporin, tacrolimus)","C. Children being vaccinated","D. Patients taking vitamin D supplements"],a:1,e:"Immunosuppressant drugs (cyclosporin, tacrolimus) have very narrow therapeutic indices and are CYP3A4 substrates. Many herbs (St. John's Wort, Echinacea) can alter their levels, risking transplant rejection or toxicity.",t:"CAM",d:"medium"},
+  {q:"What does 'evidence-based practice' require when a patient asks about a CAM therapy?",o:["A. Telling the patient all CAM is ineffective and dangerous","B. Integrating best available research evidence with clinical expertise and patient values","C. Only recommending therapies covered by national insurance","D. Deferring all CAM questions to a traditional healer"],a:1,e:"Evidence-based practice (EBP) requires integrating best research evidence + clinical expertise + patient preferences. For CAM this means honestly discussing what evidence exists, risks, and respecting patient autonomy.",t:"CAM",d:"medium"},
+  {q:"Saw palmetto is commonly used for:",o:["A. Anxiety and insomnia","B. Benign prostatic hyperplasia (BPH) symptoms","C. Type 2 diabetes","D. Wound healing"],a:1,e:"Saw palmetto is used for lower urinary tract symptoms of BPH. Evidence is mixed — some trials show modest benefit; others show no benefit over placebo. It may weakly inhibit 5-alpha reductase.",t:"CAM",d:"medium"},
+  {q:"Turmeric (curcumin) is claimed to have anti-inflammatory properties. A pharmacist's concern when recommending it alongside NSAIDs is:",o:["A. Turmeric reduces the effect of all NSAIDs completely","B. High-dose curcumin may have antiplatelet effects, increasing GI bleeding risk when combined with NSAIDs","C. Turmeric causes severe liver failure","D. There are no concerns — curcumin is completely safe"],a:1,e:"High-dose curcumin may inhibit platelet aggregation and arachidonic acid pathways. Combined with NSAIDs (which already increase GI bleeding risk), there is additive concern — especially in elderly patients.",t:"CAM",d:"hard"},
+  {q:"A patient undergoing surgery asks if they should stop their herbal supplements beforehand. The BEST advice is:",o:["A. Herbal supplements are natural and do not need to be stopped","B. Stop all herbal supplements at least 2 weeks before surgery — many affect bleeding, anaesthesia, and drug metabolism","C. Only stop if the surgeon specifically asks","D. Switch to pharmaceutical equivalents during surgery"],a:1,e:"Guidelines recommend stopping herbal supplements ≥2 weeks pre-operatively. Many herbs (ginkgo, garlic, ginger, St. John's Wort, valerian, kava) affect bleeding, CYP450 enzymes, or interact with anaesthetic agents.",t:"CAM",d:"hard"},
+  {q:"Milk thistle (silymarin) is primarily used for:",o:["A. Diabetes","B. Liver protection and hepatitis","C. Respiratory infections","D. Bone health"],a:1,e:"Milk thistle contains silymarin, which has antioxidant and anti-inflammatory properties. Used for liver diseases (hepatitis, cirrhosis, toxic liver injury). Evidence is limited but it is generally well-tolerated.",t:"CAM",d:"easy"},
+  {q:"The theoretical basis for homeopathy is considered implausible by mainstream science because:",o:["A. The remedies are too expensive to produce","B. Dilutions used are so extreme that no molecules of the original substance remain — violating basic chemistry and pharmacology","C. Homeopathic practitioners are not qualified","D. It works too quickly to be scientifically explained"],a:1,e:"At dilutions of 30C (10^-60), Avogadro's number means no original molecule remains. The claim that water retains 'memory' of substances violates chemistry. Multiple Cochrane reviews show homeopathy is no better than placebo.",t:"CAM",d:"medium"},
+  {q:"A breastfeeding mother asks about using fenugreek to increase milk supply. Your response should include:",o:["A. Fenugreek is banned during breastfeeding","B. Limited evidence supports galactagogue effect; safety data in infants is scarce; monitor infant for GI side effects","C. It is 100% safe and proven effective for all mothers","D. No herbs should ever be taken while breastfeeding"],a:1,e:"Fenugreek is commonly used as a galactagogue. Evidence is weak and inconsistent. It may cause GI upset in mother and infant. Pharmacists should advise based on evidence, not anecdote, and suggest monitoring.",t:"CAM",d:"hard"},
+  {q:"Which of the following herbs has known interactions with oral contraceptive pills?",o:["A. Chamomile","B. St. John's Wort","C. Lavender","D. Peppermint"],a:1,e:"St. John's Wort induces CYP3A4 and P-glycoprotein → reduces plasma concentrations of ethinyl oestradiol and progestin → contraceptive failure. Women taking OCPs must be warned against St. John's Wort use.",t:"CAM",d:"medium"},
+  {q:"'Naturopathy' as a CAM system emphasises:",o:["A. Surgical intervention as the first treatment choice","B. The body's innate healing ability using natural therapies — nutrition, herbs, lifestyle","C. High-dose pharmaceutical drugs","D. Energy healing through hands"],a:1,e:"Naturopathy is a system based on the belief that the body can heal itself with support from natural therapies — dietary changes, herbs, hydrotherapy, exercise, and lifestyle modification.",t:"CAM",d:"easy"},
+  {q:"A pharmacist discovers that a patient's 'traditional medicine' contains undisclosed corticosteroids. The appropriate action is:",o:["A. Advise the patient to continue as it is effective","B. Counsel the patient on the risks of undisclosed steroids, report to regulatory authorities, and document the finding","C. Remove the product from the patient without explanation","D. This situation does not require any action"],a:1,e:"Adulteration of herbal products with undisclosed pharmaceuticals (e.g. steroids, sildenafil) is illegal and dangerous. The pharmacist must counsel the patient, report to FDA Ghana or equivalent, and document.",t:"CAM",d:"hard"},
+  {q:"Reiki is classified by NCCIH under which CAM category?",o:["A. Natural Products","B. Mind-Body Practices","C. Other Complementary Health Approaches","D. Conventional Integrative Medicine"],a:2,e:"NCCIH classifies Reiki under 'Other Complementary Health Approaches' — the same category as traditional healers, chiropractic, and osteopathy. It is not classified as Natural Products (herbs) or Mind-Body Practices (yoga).",t:"CAM",d:"medium"},
+  {q:"Which of the following is a key ethical principle when a patient chooses CAM over evidence-based conventional treatment?",o:["A. Force the patient to take conventional medicine","B. Respect patient autonomy while ensuring they are fully informed of evidence, risks, and consequences","C. Refuse to interact with the patient further","D. Document nothing to avoid liability"],a:1,e:"Respect for autonomy is a core bioethical principle. Pharmacists must ensure the patient has full information (informed refusal), document the discussion, and leave the door open for reconsideration without coercion.",t:"CAM",d:"medium"},
+  {q:"Evening primrose oil is commonly used for:",o:["A. Hypertension","B. Premenstrual syndrome (PMS) and mastalgia (breast pain)","C. Bacterial infections","D. Weight loss"],a:1,e:"Evening primrose oil (gamma-linolenic acid) is used for PMS and mastalgia. Evidence for PMS is weak; some evidence exists for mastalgia. It may enhance bleeding risk with anticoagulants.",t:"CAM",d:"easy"},
+
+  // ── MANAGEMENT × 25 ──────────────────────────────────────────
+  {q:"What is the difference between a 'leader' and a 'manager'?",o:["A. Leaders have formal authority; managers do not","B. Managers focus on systems and processes; leaders inspire and influence people toward a vision","C. Managers work in the private sector; leaders work in government","D. There is no difference — the terms are interchangeable"],a:1,e:"Managers plan, organise, and control. Leaders inspire, motivate, and create vision. In practice the roles overlap — effective managers develop leadership skills. Not all managers are leaders and not all leaders are managers.",t:"Management",d:"easy"},
+  {q:"An 'autocratic' leadership style is characterised by:",o:["A. All decisions made by group consensus","B. The leader making all decisions alone with little input from subordinates","C. Employees setting their own goals without leader input","D. Shared leadership among all team members"],a:1,e:"Autocratic leaders centralise decision-making. Effective in crises or with unskilled teams but can damage morale and creativity long-term. Contrasted with democratic (participative) and laissez-faire styles.",t:"Management",d:"easy"},
+  {q:"The 'organising' function of management involves:",o:["A. Setting goals and identifying strategies","B. Determining what needs to be done, how it will be done, and who will do it","C. Motivating employees to achieve targets","D. Comparing actual performance to planned performance"],a:1,e:"Organising involves allocating tasks, grouping activities into departments, assigning authority, and coordinating work. It creates the organisational structure needed to achieve planned goals.",t:"Management",d:"easy"},
+  {q:"A mission statement describes:",o:["A. The organisation's short-term quarterly targets","B. The organisation's purpose — what it does, for whom, and why it exists","C. The organisation's financial performance","D. The manager's personal goals"],a:1,e:"A mission statement defines the organisation's fundamental purpose and reason for existence. It guides decision-making and communicates to stakeholders what the organisation stands for.",t:"Management",d:"easy"},
+  {q:"'Decentralisation' in an organisation means:",o:["A. Decision-making authority is concentrated at the top","B. Decision-making authority is distributed to lower levels of the organisation","C. The organisation has offices in multiple locations","D. All employees earn the same salary"],a:1,e:"Decentralisation delegates decision-making authority downward. Benefits: faster decisions, greater responsiveness, employee development. Risk: inconsistency if not coordinated. Contrasted with centralisation.",t:"Management",d:"easy"},
+  {q:"A hospital pharmacy department conducts a monthly meeting where staff identify problems and propose solutions together. This reflects which management approach?",o:["A. Autocratic management","B. Participative (democratic) management","C. Laissez-faire management","D. Bureaucratic management"],a:1,e:"Participative management involves employees in decision-making. Benefits: higher morale, better decisions (those closest to problems often have best solutions), greater commitment to implementation.",t:"Management",d:"easy"},
+  {q:"Change management in an organisation requires managers to:",o:["A. Avoid telling staff about changes until the last possible moment","B. Communicate clearly, involve stakeholders, address resistance, and support staff through the transition","C. Implement changes by force regardless of staff concerns","D. Change everything simultaneously for maximum efficiency"],a:1,e:"Effective change management: communicate the need and benefits clearly, involve staff early, acknowledge concerns, provide training and support, and celebrate milestones. Resistance is reduced when staff feel heard.",t:"Management",d:"medium"},
+  {q:"Performance appraisal in management serves which primary purpose?",o:["A. To punish poor performers","B. To assess employee performance, identify development needs, and align individual goals with organisational objectives","C. To determine which employees to make redundant","D. To replace the job description"],a:1,e:"Performance appraisal provides structured feedback, identifies training needs, recognises achievement, supports career development, and links individual performance to organisational goals.",t:"Management",d:"easy"},
+  {q:"The 'Hawthorne Effect' in management refers to:",o:["A. The tendency of managers to favour employees who work the most hours","B. The phenomenon where employees improve performance when they know they are being observed","C. The negative effect of overtime on productivity","D. The impact of poor lighting on worker efficiency"],a:1,e:"The Hawthorne studies (1920–30s) showed productivity improved when workers were observed — regardless of physical conditions. This highlighted the importance of social factors and attention in the workplace.",t:"Management",d:"medium"},
+  {q:"In management, 'MBO' stands for:",o:["A. Management by Organisation","B. Management by Objectives","C. Monitoring Business Outcomes","D. Measuring Bureaucratic Operations"],a:1,e:"MBO (Management by Objectives) is a process where managers and employees jointly set specific, measurable goals. Progress is reviewed regularly. Developed by Peter Drucker — aligns individual and organisational goals.",t:"Management",d:"medium"},
+  {q:"What is the primary purpose of an organisational chart?",o:["A. To show the salary grades of all employees","B. To visually represent the formal structure, hierarchy, and reporting relationships in an organisation","C. To show the location of each department","D. To list all organisational goals and strategies"],a:1,e:"An organisational chart shows the formal structure — who reports to whom, departments and divisions, and lines of authority. It clarifies accountability but does not capture informal relationships.",t:"Management",d:"easy"},
+  {q:"According to expectancy theory (Vroom), an employee is most motivated when they believe:",o:["A. The task is impossible and they need no reward","B. Their effort will lead to performance, performance will lead to a valued reward","C. All rewards are equal regardless of effort","D. The manager controls all outcomes"],a:1,e:"Vroom's Expectancy Theory: Motivation = Expectancy (effort→performance) × Instrumentality (performance→reward) × Valence (value of reward). All three must be high for maximum motivation.",t:"Management",d:"medium"},
+  {q:"Which of the following is an example of an INTRINSIC motivator?",o:["A. A salary increase","B. A year-end bonus","C. A sense of personal achievement after completing a difficult project","D. An employee of the month parking space"],a:2,e:"Intrinsic motivators come from within — achievement, mastery, purpose, autonomy, personal growth. Extrinsic motivators are external — salary, bonuses, prizes. Intrinsic motivation tends to produce more sustained performance.",t:"Management",d:"medium"},
+  {q:"'Groupthink' in management refers to:",o:["A. Healthy team collaboration on complex problems","B. A phenomenon where the desire for group harmony overrides critical thinking, leading to poor decisions","C. A formal brainstorming technique","D. Conflicts arising from diverse team opinions"],a:1,e:"Groupthink occurs when teams prioritise consensus over rigorous analysis. Symptoms: illusion of invulnerability, rationalisation, self-censorship. Prevention: devil's advocate, anonymous input, leader withholding opinion initially.",t:"Management",d:"medium"},
+  {q:"A new pharmacist is placed in charge of the outpatient dispensary for the first time. According to Situational Leadership, the BEST approach from their manager is:",o:["A. Laissez-faire — let them figure it out alone","B. High directing, low supporting — give clear instructions and close supervision","C. Low directing, high supporting — offer emotional support with minimal guidance","D. Delegate fully — they are now the manager"],a:1,e:"A new, inexperienced manager has low competence in the new role (even if skilled as a pharmacist). Situational Leadership prescribes high directing (clear guidance, close monitoring) initially — moving toward delegation as competence grows.",t:"Management",d:"hard"},
+  {q:"Which of the following best describes 'transactional leadership'?",o:["A. Leaders who inspire followers with a compelling vision of the future","B. Leaders who motivate through rewards and punishments based on performance","C. Leaders who avoid taking responsibility for outcomes","D. Leaders who delegate all authority to subordinates"],a:1,e:"Transactional leaders use exchange — performance earns reward; poor performance earns punishment. Effective for routine tasks but less effective for innovation. Contrasted with transformational leadership which inspires beyond self-interest.",t:"Management",d:"medium"},
+  {q:"Total Quality Management (TQM) in healthcare focuses on:",o:["A. Reducing staff numbers to cut costs","B. Continuous improvement of processes, patient outcomes, and service quality involving all staff","C. Quality control only at the end of the production process","D. Improving only financial performance indicators"],a:1,e:"TQM is a management philosophy focused on continuous quality improvement, customer (patient) satisfaction, process improvement, and involving all employees at all levels. Pioneered by Deming and Juran.",t:"Management",d:"medium"},
+  {q:"A pharmacy manager sets a goal for the team to 'reduce patient waiting time by 20% within 3 months'. This goal is described as SMART because it is:",o:["A. Simple, Meaningful, Achievable, Relevant, Timely","B. Specific, Measurable, Achievable, Relevant, Time-bound","C. Strategic, Motivating, Assertive, Realistic, Tracked","D. Simple, Manageable, Accurate, Resourced, Tested"],a:1,e:"SMART goals: Specific (reduce waiting time), Measurable (by 20%), Achievable (realistic), Relevant (important to patients), Time-bound (within 3 months). SMART goals improve focus and accountability.",t:"Management",d:"easy"},
+  {q:"Which of the following is an example of a 'tall' organisational structure?",o:["A. A small pharmacy with owner and 2 staff","B. A large hospital with many management layers from ward assistant to CEO","C. A flat startup where all employees report to one director","D. A matrix organisation with project teams"],a:1,e:"Tall structures have many hierarchical levels and narrow spans of control. Advantages: close supervision, clear career paths. Disadvantages: slow communication, high management costs, less empowerment.",t:"Management",d:"medium"},
+  {q:"The management function of 'leading' primarily involves:",o:["A. Setting annual budgets","B. Designing the organisational structure","C. Motivating, directing, and influencing employees to achieve goals","D. Comparing outcomes against standards and correcting deviations"],a:2,e:"Leading involves working with and through people — motivating, communicating, managing conflict, inspiring commitment, and creating a positive work environment. It is the most interpersonal of the four management functions.",t:"Management",d:"easy"},
+  {q:"Adam Smith's concept of 'division of labour' as applied in management means:",o:["A. Sharing leadership responsibilities equally among all managers","B. Breaking complex work into specialised tasks performed by different workers to increase efficiency","C. Dividing the workforce by gender or age","D. Allocating equal pay regardless of job role"],a:1,e:"Division of labour (Smith, 1776) showed that specialisation increases productivity dramatically. Workers who repeatedly perform one task become highly efficient. This is the basis of assembly lines and departmental specialisation.",t:"Management",d:"medium"},
+  {q:"An employee who fears their job is at risk works extremely hard. According to Maslow, which need is driving this behaviour?",o:["A. Self-actualisation","B. Social/belonging needs","C. Safety and security needs","D. Esteem needs"],a:2,e:"Fear of job loss threatens Safety needs (security, stability, freedom from fear). According to Maslow, unmet lower needs dominate behaviour. Once safety is secured, higher needs (social, esteem, self-actualisation) motivate.",t:"Management",d:"medium"},
+  {q:"In a healthcare organisation, 'clinical governance' is BEST described as:",o:["A. The financial governance of hospital budgets","B. A framework through which organisations are accountable for continuously improving quality and safeguarding standards of care","C. The management of clinical staff working hours","D. A system for prescribing medicines only"],a:1,e:"Clinical governance integrates quality improvement, risk management, staff development, and patient safety into a systematic framework. It ensures organisations are accountable for clinical quality — not just financial performance.",t:"Management",d:"hard"},
+  {q:"The 'balanced scorecard' management tool measures organisational performance from which four perspectives?",o:["A. Staff, Supplies, Systems, Strategy","B. Financial, Customer, Internal Processes, Learning and Growth","C. Input, Process, Output, Outcome","D. Planning, Organising, Leading, Controlling"],a:1,e:"Kaplan & Norton's Balanced Scorecard: Financial (profit, cost), Customer (satisfaction, retention), Internal Processes (efficiency, quality), Learning & Growth (staff development, innovation). Prevents over-focus on financial metrics alone.",t:"Management",d:"hard"},
+  {q:"A pharmacy that consistently fails to meet patient waiting time targets despite adequate staffing most likely has a problem with:",o:["A. Insufficient budget","B. Poor process design and workflow management","C. Overstaffing","D. Excessive patient demand that cannot be managed"],a:1,e:"When resources are adequate but performance lags, the problem is usually in the process — inefficient workflows, unclear roles, bottlenecks in dispensing, poor layout, or inadequate standard operating procedures.",t:"Management",d:"hard"},
+];
+
+const PATH=[
+  {title:"Unit 1 — LMIS Foundations",desc:"Purpose, essential data items, records vs reports",type:"flashcards",xp:50,status:"active",done:false},
+  {title:"Unit 2 — LMIS Records Deep Dive",desc:"Stockkeeping, Transaction & Consumption records",type:"quiz",xp:60,status:"locked",done:false},
+  {title:"Unit 3 — LMIS in Ghana",desc:"LMIS forms, information flow, CMS/RMS/DHD",type:"flashcards",xp:50,status:"locked",done:false},
+  {title:"🏆 LMIS Checkpoint",desc:"10-question milestone on all LMIS content",type:"milestone",xp:100,status:"locked",done:false},
+  {title:"Unit 4 — PK Fundamentals",desc:"ADME, bioavailability, Vd, CL, t½",type:"flashcards",xp:55,status:"locked",done:false},
+  {title:"Unit 5 — PK Calculations",desc:"Steady state, loading dose, maintenance dose",type:"quiz",xp:70,status:"locked",done:false},
+  {title:"Unit 6 — Special PK Populations",desc:"Renal/hepatic impairment, elderly, drug interactions",type:"flashcards",xp:55,status:"locked",done:false},
+  {title:"🏆 Pharmacokinetics Checkpoint",desc:"12-question PK milestone quiz",type:"milestone",xp:120,status:"locked",done:false},
+  {title:"Unit 7 — CAM & Reiki (PHARM 573)",desc:"CAM classification, Reiki theory, evidence, herb-drug interactions",type:"flashcards",xp:45,status:"locked",done:false},
+  {title:"Unit 8 — Principles of Management",desc:"4 Functions, manager roles, Katz skills, organisations",type:"quiz",xp:60,status:"locked",done:false},
+  {title:"🏆 Final Comprehensive Review",desc:"25-question mixed exam across all 4 subjects",type:"milestone",xp:200,status:"locked",done:false},
+];
+
+const ACH=[
+  {id:'fc1',ico:'🃏',nm:'First Card',dc:'Review first flashcard'},
+  {id:'fc10',ico:'⚡',nm:'Ten Cards',dc:'Review 10 flashcards'},
+  {id:'fc50',ico:'🔥',nm:'Card Machine',dc:'Review 50 flashcards'},
+  {id:'q1',ico:'🎯',nm:'First Quiz',dc:'Answer first question'},
+  {id:'p5',ico:'🏆',nm:'Perfect 5',dc:'5 correct in a row'},
+  {id:'xp100',ico:'💫',nm:'XP Hunter',dc:'Earn 100 XP'},
+  {id:'xp500',ico:'🌟',nm:'Rx Rising',dc:'Earn 500 XP'},
+  {id:'str3',ico:'🔥',nm:'On Fire',dc:'3-day streak'},
+  {id:'lmis',ico:'📋',nm:'LMIS Master',dc:'10 LMIS questions'},
+  {id:'pk',ico:'⚗️',nm:'PK Expert',dc:'10 PK questions'},
+];
+
+/* ── STATE ────────────────────────────────────────────────────── */
+const S={
+  xp:+localStorage.getItem('rx2_xp')||0,
+  streak:+localStorage.getItem('rx2_str')||0,
+  dxp:+localStorage.getItem('rx2_dxp')||0,
+  dgoal:100,
+  fc:JSON.parse(localStorage.getItem('rx2_fc')||'null')||FC,
+  qs:JSON.parse(localStorage.getItem('rx2_qs')||'null')||QS,
+  path:JSON.parse(localStorage.getItem('rx2_path')||'null')||PATH,
+  ach:JSON.parse(localStorage.getItem('rx2_ach')||'[]'),
+  cr:+localStorage.getItem('rx2_cr')||0,
+  qa:+localStorage.getItem('rx2_qa')||0,
+  qc:+localStorage.getItem('rx2_qc')||0,
+  _fca:[], fci:0, fff:false, fkn:0, frv:0,
+  _qa:[], qi:0, qsc:0, qad:false,
+};
+let cc=0, nfs=[], nfc='';
+
+/* ── NAVIGATION ───────────────────────────────────────────────── */
+const nbIds=['nb0','nb1','nb2','nb3','nb4'];
+const scMap={home:'nb0','s-fc':'nb1','s-q':'nb2','s-path':'nb3','s-profile':'nb4'};
+function go(id){
+  document.querySelectorAll('.sc').forEach(s=>s.classList.remove('on'));
+  const el=document.getElementById(id);
+  if(el) el.classList.add('on');
+  nbIds.forEach(n=>document.getElementById(n).classList.remove('on'));
+  const nb=scMap[id.replace('s-','')];
+  if(nb) document.getElementById(nb).classList.add('on');
+}
+
+/* ── HOME ─────────────────────────────────────────────────────── */
+function upHome(){
+  document.getElementById('xd').textContent=S.xp;
+  document.getElementById('sc').textContent=S.streak;
+  const p=Math.min(100,Math.round((S.dxp/S.dgoal)*100));
+  document.getElementById('dcur').textContent=S.dxp;
+  document.getElementById('dgl').textContent=S.dgoal;
+  document.getElementById('dpct').textContent=p+'%';
+  document.getElementById('dprg').style.width=p+'%';
+  document.getElementById('sc1').textContent=S.fc.length;
+  document.getElementById('sc2').textContent=S.qs.length;
+  document.getElementById('fcmc').textContent=S.fc.length+' cards';
+  document.getElementById('qmc').textContent=S.qs.length+' questions';
+  const acc=S.qa>0?Math.round((S.qc/S.qa)*100)+'%':'—';
+  document.getElementById('sc3').textContent=acc;
+  document.getElementById('amc').textContent=S.ach.length+' earned';
+  const h=new Date().getHours();
+  document.getElementById('grsub').textContent=(h<12?'Good morning':h<17?'Good afternoon':'Good evening')+' 👋';
+}
+
+/* ── XP ───────────────────────────────────────────────────────── */
+function addXP(n){
+  S.xp+=n; S.dxp+=n;
+  localStorage.setItem('rx2_xp',S.xp);
+  localStorage.setItem('rx2_dxp',S.dxp);
+  const el=document.createElement('div');
+  el.className='xpb'; el.textContent='+'+n+' XP';
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),900);
+  document.getElementById('xd').textContent=S.xp;
+  const lvl=Math.floor(Math.sqrt(S.xp/50))+1;
+  const prev=+localStorage.getItem('rx2_lvl')||1;
+  if(lvl>prev){localStorage.setItem('rx2_lvl',lvl);toast('🎉 Level Up! Level '+lvl,'ok');}
+  upProf(); ach();
+}
+
+/* ── ACHIEVEMENTS ─────────────────────────────────────────────── */
+function ach(){
+  const u=id=>{if(!S.ach.includes(id)){S.ach.push(id);localStorage.setItem('rx2_ach',JSON.stringify(S.ach));const d=ACH.find(a=>a.id===id);if(d)toast(d.ico+' Unlocked: '+d.nm,'ok');cfti();}};
+  if(S.cr>=1)u('fc1'); if(S.cr>=10)u('fc10'); if(S.cr>=50)u('fc50');
+  if(S.qa>=1)u('q1'); if(S.xp>=100)u('xp100'); if(S.xp>=500)u('xp500');
+  if(S.streak>=3)u('str3'); if(cc>=5)u('p5');
+  const lq=S.qs.filter(q=>q.t==='LMIS');if(S.qa>=10&&lq.length>=10)u('lmis');
+  const pq=S.qs.filter(q=>q.t==='Pharmacokinetics');if(S.qa>=10&&pq.length>=10)u('pk');
+}
+function rAch(){
+  document.getElementById('agrid').innerHTML=ACH.map(a=>{
+    const e=S.ach.includes(a.id);
+    return`<div class="acard ${e?'eon':''}"><div class="aico" style="${e?'':'filter:grayscale(1);opacity:.3'}">${a.ico}</div><div class="anm" style="${e?'color:var(--accent3)':''}">${a.nm}</div></div>`;
+  }).join('');
+}
+
+/* ── PROFILE ──────────────────────────────────────────────────── */
+function upProf(){
+  const lvl=Math.floor(Math.sqrt(S.xp/50))+1;
+  const xL=Math.pow(lvl-1,2)*50,xN=Math.pow(lvl,2)*50;
+  const lp=xL===xN?100:Math.round(((S.xp-xL)/(xN-xL))*100);
+  document.getElementById('plvl').textContent=lvl;
+  document.getElementById('pxp').textContent=S.xp;
+  document.getElementById('pxpn').textContent=Math.max(0,xN-S.xp);
+  document.getElementById('plvlp').style.width=lp+'%';
+  document.getElementById('p1').textContent=S.cr;
+  document.getElementById('p2').textContent=S.qa;
+  document.getElementById('p3').textContent=S.qa>0?Math.round((S.qc/S.qa)*100)+'%':'—';
+  document.getElementById('p4').textContent=S.streak;
+  rAch();
+}
+
+/* ── FLASHCARDS ───────────────────────────────────────────────── */
+function goFC(f){
+  const cards=f==='all'?S.fc:S.fc.filter(c=>c.t===f);
+  if(!cards.length){toast('No cards for this topic','inf');return;}
+  S._fca=[...cards].sort(()=>Math.random()-.5);
+  S.fci=0;S.fff=false;S.fkn=0;S.frv=0;
+  go('s-fc'); rCard();
+}
+function rCard(){
+  const c=S._fca[S.fci];
+  document.getElementById('c3').classList.remove('fl');
+  S.fff=false;
+  document.getElementById('ffront').textContent=c.f;
+  document.getElementById('fback').textContent=c.b;
+  document.getElementById('fctopic').textContent=c.t;
+  document.getElementById('fccur').textContent=S.fci+1;
+  document.getElementById('fctot').textContent=S._fca.length;
+  document.getElementById('fcprg').style.width=((S.fci/S._fca.length)*100)+'%';
+  document.getElementById('fkn').textContent=S.fkn;
+  document.getElementById('frv').textContent=S.frv;
+}
+function flip(){
+  S.fff=!S.fff;
+  document.getElementById('c3').classList.toggle('fl',S.fff);
+}
+function cresp(ok){
+  if(!S.fff){flip();return;}
+  if(ok){S.fkn++;addXP(5);}else S.frv++;
+  S.cr++;localStorage.setItem('rx2_cr',S.cr);
+  S.fci++;
+  if(S.fci>=S._fca.length){
+    const p=Math.round((S.fkn/S._fca.length)*100);
+    toast('🎉 Session done! '+p+'% mastered','ok');
+    if(p>=80)cfti();
+    ach();upHome();
+    setTimeout(()=>go('s-home'),1400);
+    return;
+  }
+  rCard();
+}
+
+/* ── QUIZ ─────────────────────────────────────────────────────── */
+function goQ(f){
+  let qs=f==='all'?S.qs:S.qs.filter(q=>q.t===f);
+  if(!qs.length){toast('No questions for this topic','inf');return;}
+  S._qa=[...qs].sort(()=>Math.random()-.5);
+  S.qi=0;S.qsc=0;S.qad=false;cc=0;
+  go('s-q');rQ();
+}
+function rQ(){
+  const q=S._qa[S.qi],tot=S._qa.length;
+  S.qad=false;
+  document.getElementById('qcur').textContent=S.qi+1;
+  document.getElementById('qtot').textContent=tot;
+  document.getElementById('qspill').textContent='Score: '+S.qsc;
+  document.getElementById('qprg').style.width=((S.qi/tot)*100)+'%';
+  document.getElementById('nqb').style.display='none';
+  const L=['A','B','C','D'];
+  const dc={easy:'var(--success)',medium:'var(--accent3)',hard:'var(--danger)'};
+  const opts=q.o.map((o,i)=>`<button class="opt" id="o${i}" onclick="pick(${i})"><div class="olt" id="ol${i}">${L[i]}</div><span>${o.replace(/^[A-E]\.\s*/,'')}</span></button>`).join('');
+  document.getElementById('qbody').innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">
+      <span class="pill pt2">${q.t}</span>
+      <span style="font-size:.66rem;font-weight:700;color:${dc[q.d]||'var(--muted)'};text-transform:uppercase">${q.d||''}</span>
+    </div>
+    <div class="qtxt">${q.q}</div>
+    ${opts}
+    <div class="expl" id="expl">${q.e?`<strong>Explanation</strong>${q.e}`:''}</div>
+    <div style="height:8px"></div>`;
+}
+function pick(sel){
+  if(S.qad)return;S.qad=true;
+  const q=S._qa[S.qi],ok=sel===q.a;
+  document.querySelectorAll('.opt').forEach((b,i)=>{
+    b.disabled=true;
+    if(i===q.a)b.classList.add('ok');
+    else if(i===sel&&!ok)b.classList.add('no');
+  });
+  document.getElementById('expl').classList.add('on');
+  if(ok){S.qsc++;S.qc++;cc++;addXP(10);toast('✅ Correct! +10 XP','ok');}
+  else{cc=0;toast('❌ Not quite — read the explanation','err');}
+  S.qa++;localStorage.setItem('rx2_qa',S.qa);localStorage.setItem('rx2_qc',S.qc);
+  ach();
+  const nb=document.getElementById('nqb');
+  nb.style.display='flex';
+  nb.textContent=S.qi>=S._qa.length-1?'See Results ›':'Next Question ›';
+}
+function nxtQ(){
+  S.qi++;if(S.qi>=S._qa.length){showRes();return;}rQ();
+}
+function showRes(){
+  const tot=S._qa.length,p=Math.round((S.qsc/tot)*100);
+  const g=p>=90?'A':p>=80?'B':p>=70?'C':'D';
+  const gc=p>=80?'var(--success)':p>=60?'var(--accent3)':'var(--danger)';
+  document.getElementById('qbody').innerHTML=`
+    <div style="display:flex;flex-direction:column;align-items:center;gap:16px;padding:22px 0">
+      <div style="font-size:3.3rem;font-family:var(--fd);font-weight:800;color:${gc}">${g}</div>
+      <div class="h2">Quiz Complete!</div>
+      <div style="font-size:.84rem;color:var(--muted);text-align:center"><strong style="color:var(--text)">${S.qsc}/${tot}</strong> correct · ${p}%</div>
+      <div class="card" style="width:100%;display:flex;flex-direction:column;gap:9px">
+        <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Correct</span><span style="color:var(--success);font-weight:600">${S.qsc}</span></div>
+        <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Incorrect</span><span style="color:var(--danger);font-weight:600">${tot-S.qsc}</span></div>
+        <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">XP earned</span><span style="color:var(--accent3);font-weight:600">+${S.qsc*10}</span></div>
+      </div>
+      <button class="btn bprimary" onclick="goQ(S.qFilter||'all')">Retry</button>
+      <button class="btn bghost" onclick="go('s-home')" style="margin-top:-4px">Back to Home</button>
+    </div>`;
+  document.getElementById('nqb').style.display='none';
+  if(p>=80)cfti();upHome();
+}
+
+/* ── PATH ─────────────────────────────────────────────────────── */
+function rPath(){
+  const dn=S.path.filter(n=>n.done).length;
+  const p=Math.round((dn/S.path.length)*100);
+  document.getElementById('ppill').textContent=p+'% done';
+  document.getElementById('plist').innerHTML=S.path.map((n,i)=>{
+    const ms=n.type==='milestone';
+    const sc=n.done?'pd-done':n.status==='active'?'pd-act':'pd-lock';
+    const dot=n.done?'✓':ms?'★':(i+1);
+    return`<div class="pnode" onclick="pClick(${i})">
+      <div class="pdot ${ms&&!n.done?'pd-ms':sc}">${dot}</div>
+      <div class="pcnt" style="${n.status==='locked'?'opacity:.5':''}">
+        <div class="pctit">${n.title}</div>
+        <div class="pcmet">${n.desc} · <span style="color:var(--accent3)">+${n.xp} XP</span>${n.status==='locked'?' · 🔒':''}</div>
+      </div>
+    </div>`;
+  }).join('')+'<div style="height:90px"></div>';
+}
+function pClick(i){
+  const n=S.path[i];
+  if(n.status==='locked'){toast('🔒 Complete earlier modules first','inf');return;}
+  if(!n.done){
+    S.path[i].done=true;
+    if(i+1<S.path.length)S.path[i+1].status='active';
+    localStorage.setItem('rx2_path',JSON.stringify(S.path));
+    addXP(n.xp);rPath();
+  }
+  if(n.type==='flashcards')goFC('all');
+  else goQ('all');
+}
+
+/* ── FILE UPLOAD ──────────────────────────────────────────────── */
+document.getElementById('fi').addEventListener('change',e=>{
+  Array.from(e.target.files).forEach(f=>{
+    if(nfs.find(x=>x.name===f.name))return;
+    nfs.push(f);
+    const r=new FileReader();r.onload=ev=>{nfc+='\n\n---'+f.name+'---\n'+ev.target.result;};r.readAsText(f);
+  });
+  rNfl();
+  if(nfs.length){document.getElementById('gbtn').disabled=false;document.getElementById('gbtn').style.opacity='1';}
+});
+function rNfl(){
+  document.getElementById('nfl').innerHTML=nfs.map((f,i)=>`
+    <div style="display:flex;align-items:center;gap:9px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:10px 12px">
+      <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" width="16" height="16"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+      <span style="flex:1;font-size:.8rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.name}</span>
+      <button onclick="nfs.splice(${i},1);rNfl()" style="border:none;background:none;color:var(--muted);cursor:pointer">✕</button>
+    </div>`).join('');
+}
+const uz=document.getElementById('uz');
+uz.addEventListener('dragover',e=>{e.preventDefault();uz.style.borderColor='var(--accent)';});
+uz.addEventListener('dragleave',()=>uz.style.borderColor='var(--border)');
+uz.addEventListener('drop',e=>{e.preventDefault();uz.style.borderColor='var(--border)';Array.from(e.dataTransfer.files).forEach(f=>{nfs.push(f);const r=new FileReader();r.onload=ev=>{nfc+='\n---'+f.name+'---\n'+ev.target.result;};r.readAsText(f);});rNfl();if(nfs.length){document.getElementById('gbtn').disabled=false;document.getElementById('gbtn').style.opacity='1';}});
+
+async function startGen(){
+  const ovl=document.getElementById('povl');ovl.classList.add('on');
+  const steps=document.querySelectorAll('.gst');let si=0;
+  const iv=setInterval(()=>{if(si>0)steps[si-1].classList.replace('cr','dn');if(si<steps.length){steps[si].classList.add('cr');si++;}},700);
+  const ctx=document.getElementById('ctx').value;
+  const snip=nfc.slice(0,7000);
+  const prompt=`You are a pharmacy professor at KNUST Ghana. A student uploaded additional course materials:\n<material>${snip||'No new material.'}</material>\nExisting topics: LMIS, Clinical PK, CAM/Reiki (PHARM 573), Management (MAS 261). Context: ${ctx||'PharmD student KNUST'}.\nReturn ONLY valid JSON (no backticks):\n{"flashcards":[{"f":"front","b":"back","t":"LMIS|Pharmacokinetics|CAM|Management"},...min 20],"questions":[{"q":"...","o":["A. ...","B. ...","C. ...","D. ..."],"a":0,"e":"explanation","t":"...","d":"easy|medium|hard"},...min 30],"summary":"..."}`;
+  try{
+    const res=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:MDL,max_tokens:6000,messages:[{role:'user',content:prompt}]})});
+    const data=await res.json();
+    const txt=data.content.filter(b=>b.type==='text').map(b=>b.text).join('');
+    const parsed=JSON.parse(txt.replace(/```json|```/g,'').trim());
+    clearInterval(iv);steps.forEach(s=>{s.classList.add('dn');s.classList.remove('cr');});
+    await new Promise(r=>setTimeout(r,500));ovl.classList.remove('on');
+    S.fc=[...FC,...(parsed.flashcards||[])];
+    S.qs=[...QS,...(parsed.questions||[])];
+    localStorage.setItem('rx2_fc',JSON.stringify(S.fc));
+    localStorage.setItem('rx2_qs',JSON.stringify(S.qs));
+    upHome();cfti();
+    toast('✅ '+S.fc.length+' cards & '+S.qs.length+' questions ready!','ok');
+    go('s-home');
+  }catch(err){
+    clearInterval(iv);ovl.classList.remove('on');
+    console.error(err);
+    toast('Using pre-loaded curriculum content','inf');
+    go('s-home');
+  }
+}
+
+/* ── CONFETTI ─────────────────────────────────────────────────── */
+function cfti(){
+  const cv=document.getElementById('confetti-canvas');const cx=cv.getContext('2d');
+  cv.width=innerWidth;cv.height=innerHeight;
+  const pts=Array.from({length:55},()=>({x:Math.random()*cv.width,y:-10,vx:(Math.random()-.5)*4,vy:Math.random()*4+2,c:['#00d4aa','#818cf8','#fbbf24','#f472b6','#34d399'][Math.floor(Math.random()*5)],s:Math.random()*7+3,r:Math.random()*360,rv:(Math.random()-.5)*9}));
+  let alive=true,fr;
+  const draw=()=>{cx.clearRect(0,0,cv.width,cv.height);pts.forEach(p=>{cx.save();cx.translate(p.x,p.y);cx.rotate(p.r*Math.PI/180);cx.fillStyle=p.c;cx.fillRect(-p.s/2,-p.s/4,p.s,p.s*.45);cx.restore();p.x+=p.vx;p.y+=p.vy;p.r+=p.rv;p.vy+=.08;});if(alive&&pts.some(p=>p.y<cv.height+20))fr=requestAnimationFrame(draw);else cx.clearRect(0,0,cv.width,cv.height);};
+  draw();setTimeout(()=>{alive=false;cancelAnimationFrame(fr);cx.clearRect(0,0,cv.width,cv.height);},3000);
+}
+/* ── TOAST ────────────────────────────────────────────────────── */
+let _tt;
+function toast(msg,type='inf'){
+  const t=document.getElementById('toast');t.textContent=msg;t.className='on '+type;
+  clearTimeout(_tt);_tt=setTimeout(()=>t.className='',2800);
+}
+
+/* ── STREAK ───────────────────────────────────────────────────── */
+function initStreak(){
+  const today=new Date().toDateString(),last=localStorage.getItem('rx2_ld');
+  if(last!==today){
+    localStorage.setItem('rx2_ld',today);
+    if(last===new Date(Date.now()-86400000).toDateString())S.streak++;
+    else if(last)S.streak=1;else S.streak=1;
+    S.dxp=0;
+    localStorage.setItem('rx2_str',S.streak);
+    localStorage.setItem('rx2_dxp','0');
+  }
+}
+
+/* ── INIT ─────────────────────────────────────────────────────── */
+(function init(){
+  initStreak();upHome();upProf();rPath();rAch();
+})();
+</script>
+</body>
+</html>
